@@ -1,0 +1,32 @@
+name: Slither Static Analysis
+
+on:
+  pull_request:
+    paths:
+      - 'contracts/**'
+
+jobs:
+  slither:
+    name: Run Slither analysis
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm install
+      - uses: crytic/slither-action@v0.4.2
+        id: slither
+        with:
+          target: 'contracts/'
+          slither-args: '--checklist --markdown-root ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}/'
+          sarif: results.sarif
+          fail-on: none
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ steps.slither.outputs.sarif }}
