@@ -21,6 +21,19 @@ describe("Envelope", function () {
     );
   });
 
+  describe("constructor", function () {
+    it("reverts when portfolio address is zero", async function () {
+      const Envelope = await ethers.getContractFactory("Envelope");
+      await expect(
+        Envelope.deploy(
+          ethers.ZeroAddress,
+          await token.getAddress(),
+          ethers.encodeBytes32String("test")
+        )
+      ).to.be.revertedWithCustomError({ interface: (await ethers.getContractFactory("Envelope")).interface }, "ZeroAddress");
+    });
+  });
+
   describe("state", function () {
     it("stores the portfolio address", async function () {
       expect(await envelope.portfolio()).to.equal(portfolio.address);
@@ -48,24 +61,24 @@ describe("Envelope", function () {
     });
   });
 
-  describe("transfer()", function () {
+  describe("sendFunds()", function () {
     beforeEach(async function () {
       await token.mint(await envelope.getAddress(), 1000n);
     });
 
     it("allows the portfolio to transfer funds out", async function () {
-      await envelope.connect(portfolio).transfer(otherAccount.address, 500n);
+      await envelope.connect(portfolio).sendFunds(otherAccount.address, 500n);
       expect(await token.balanceOf(otherAccount.address)).to.equal(500n);
     });
 
     it("reduces the envelope balance after transfer", async function () {
-      await envelope.connect(portfolio).transfer(otherAccount.address, 300n);
+      await envelope.connect(portfolio).sendFunds(otherAccount.address, 300n);
       expect(await envelope.balance()).to.equal(700n);
     });
 
     it("reverts when called by a non-portfolio address", async function () {
       await expect(
-        envelope.connect(otherAccount).transfer(otherAccount.address, 500n)
+        envelope.connect(otherAccount).sendFunds(otherAccount.address, 500n)
       ).to.be.revertedWithCustomError(envelope, "OnlyPortfolio");
     });
 
@@ -80,7 +93,7 @@ describe("Envelope", function () {
 
       // otherAccount is not the portfolio of `envelope`, so this must revert
       await expect(
-        envelope.connect(otherAccount).transfer(await rogueEnvelope.getAddress(), 500n)
+        envelope.connect(otherAccount).sendFunds(await rogueEnvelope.getAddress(), 500n)
       ).to.be.revertedWithCustomError(envelope, "OnlyPortfolio");
     });
   });

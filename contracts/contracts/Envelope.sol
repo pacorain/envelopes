@@ -2,6 +2,7 @@
 pragma solidity 0.8.34;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title Envelope
@@ -9,10 +10,12 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  *
  * Envelope is a dumb vault — it holds funds and exposes a transfer function,
  * but contains no role-based authorization logic. The only access check is that
- * `transfer` is callable only by the Portfolio contract that deployed this envelope.
+ * `sendFunds` is callable only by the Portfolio contract that deployed this envelope.
  * All higher-level permission logic (admin vs manager roles, etc.) lives in Portfolio.sol.
  */
 contract Envelope {
+    using SafeERC20 for IERC20;
+
     /// @notice The Portfolio contract that deployed this envelope and is the sole authorized caller.
     address public immutable portfolio;
 
@@ -23,6 +26,7 @@ contract Envelope {
     bytes32 public immutable name;
 
     error OnlyPortfolio();
+    error ZeroAddress();
 
     modifier onlyPortfolio() {
         if (msg.sender != portfolio) revert OnlyPortfolio();
@@ -30,6 +34,7 @@ contract Envelope {
     }
 
     constructor(address portfolio_, IERC20 token_, bytes32 name_) {
+        if (portfolio_ == address(0)) revert ZeroAddress();
         portfolio = portfolio_;
         token = token_;
         name = name_;
@@ -42,8 +47,8 @@ contract Envelope {
      * @param to      Destination address (another envelope or withdrawal address).
      * @param amount  Amount of tokens to transfer.
      */
-    function transfer(address to, uint256 amount) external onlyPortfolio {
-        token.transfer(to, amount);
+    function sendFunds(address to, uint256 amount) external onlyPortfolio {
+        token.safeTransfer(to, amount);
     }
 
     /**
