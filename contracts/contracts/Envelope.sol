@@ -27,6 +27,13 @@ contract Envelope {
 
     error OnlyPortfolio();
     error ZeroAddress();
+    error ETHNotAccepted();
+    error CannotRescuePrimaryToken();
+
+    /// @notice Reject any ETH sent directly to this contract.
+    receive() external payable {
+        revert ETHNotAccepted();
+    }
 
     modifier onlyPortfolio() {
         if (msg.sender != portfolio) revert OnlyPortfolio();
@@ -49,6 +56,19 @@ contract Envelope {
      */
     function sendFunds(address to, uint256 amount) external onlyPortfolio {
         token.safeTransfer(to, amount);
+    }
+
+    /**
+     * @notice Recover ERC-20 tokens accidentally sent to this envelope.
+     * @dev Callable only by the Portfolio. Cannot be used to rescue the primary token —
+     *      use sendFunds() for that. Intended for tokens mistakenly sent to this address.
+     * @param rescueToken_  The ERC-20 token to recover (must not be the primary token).
+     * @param to            Destination address.
+     * @param amount        Amount to transfer.
+     */
+    function rescueToken(IERC20 rescueToken_, address to, uint256 amount) external onlyPortfolio {
+        if (rescueToken_ == token) revert CannotRescuePrimaryToken();
+        rescueToken_.safeTransfer(to, amount);
     }
 
     /**

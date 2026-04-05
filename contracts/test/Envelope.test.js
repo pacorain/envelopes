@@ -4,6 +4,7 @@ import { ethers } from "hardhat";
 describe("Envelope", function () {
   let envelope;
   let token;
+  let otherToken;
   let portfolio;
   let otherAccount;
 
@@ -12,6 +13,7 @@ describe("Envelope", function () {
 
     const MockERC20 = await ethers.getContractFactory("MockERC20");
     token = await MockERC20.deploy("Mock USDC", "USDC", 6);
+    otherToken = await MockERC20.deploy("Other Token", "OTH", 18);
 
     const Envelope = await ethers.getContractFactory("Envelope");
     envelope = await Envelope.deploy(
@@ -61,6 +63,17 @@ describe("Envelope", function () {
     });
   });
 
+  describe("ETH rejection", function () {
+    it("reverts when ETH is sent directly", async function () {
+      await expect(
+        portfolio.sendTransaction({
+          to: await envelope.getAddress(),
+          value: ethers.parseEther("1"),
+        })
+      ).to.be.revertedWithCustomError(envelope, "ETHNotAccepted");
+    });
+  });
+
   describe("sendFunds()", function () {
     beforeEach(async function () {
       await token.mint(await envelope.getAddress(), 1000n);
@@ -82,6 +95,45 @@ describe("Envelope", function () {
       ).to.be.revertedWithCustomError(envelope, "OnlyPortfolio");
     });
 
+  });
+
+  describe("rescueToken()", function () {
+    beforeEach(async function () {
+      await otherToken.mint(await envelope.getAddress(), 500n);
+    });
+
+    it("allows the portfolio to rescue an accidentally sent ERC-20", async function () {
+      await envelope.connect(portfolio).rescueToken(
+        await otherToken.getAddress(),
+        otherAccount.address,
+        500n
+      );
+      expect(await otherToken.balanceOf(otherAccount.address)).to.equal(500n);
+    });
+
+    it("reverts when trying to rescue the primary token", async function () {
+      await token.mint(await envelope.getAddress(), 100n);
+      await expect(
+        envelope.connect(portfolio).rescueToken(
+          await token.getAddress(),
+          otherAccount.address,
+          100n
+        )
+      ).to.be.revertedWithCustomError(envelope, "CannotRescuePrimaryToken");
+    });
+
+    it("reverts when called by a non-portfolio address", async function () {
+      await expect(
+        envelope.connect(otherAccount).rescueToken(
+          await otherToken.getAddress(),
+          otherAccount.address,
+          500n
+        )
+      ).to.be.revertedWithCustomError(envelope, "OnlyPortfolio");
+    });
+  });
+
+  describe("sendFunds() — additional", function () {
     it("only the portfolio can move funds — any other caller is rejected", async function () {
       // Deploy a second envelope to use as a caller (simulates a rogue contract)
       const Envelope = await ethers.getContractFactory("Envelope");
