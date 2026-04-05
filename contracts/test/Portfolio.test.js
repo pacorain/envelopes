@@ -1,4 +1,4 @@
-const { expect } = require("chai");
+import { expect } from "chai";
 
 describe("Portfolio", function () {
   it("TODO: Add tests", async function () {
