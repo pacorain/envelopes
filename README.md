@@ -213,4 +213,6 @@ This project aims to stay auditable, forkable, and self-hostable. The intended e
 
 ## License
 
-Personal use only
+**Private: Pending review**. Copyright 2026 Austin Rainwater. All rights reserved.
+
+This project is under review for IP clearance. 
