@@ -6,6 +6,14 @@ See `README.md` for project overview, feature descriptions, and stack rationale.
 
 ---
 
+## Working with GitHub Issues
+
+When asked to work on a GitHub issue, **wait for the GitHub MCP tools to become available** before attempting to read the issue. These tools load asynchronously at session start and may not be ready immediately.
+
+If a tool like `mcp__github__issue_read` is not yet available, use `ToolSearch` to look it up — this will trigger it to load. Do not try to access GitHub via the `gh` CLI or `WebFetch`; the repo is private and those methods will fail.
+
+---
+
 ## Contract Architecture
 
 ### Two-contract model: Portfolio + Envelope
