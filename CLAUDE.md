@@ -94,6 +94,25 @@ The UI is intentionally a thin layer over the contracts. Its job is wallet conne
 
 ---
 
+## Address Generation
+
+**Do not generate, guess, or hallucinate Ethereum addresses in code.** For security reasons:
+- Placeholder addresses create false sense of security if they slip into production
+- Hard-coded addresses should only appear for externally verified constants (e.g. USDC on Base: `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` — this one is confirmed)
+- For any address that needs to be provided by the user or environment (e.g. withdrawal address, factory address), use placeholders or TODO comments instead
+
+Example:
+```solidity
+// ❌ Don't do this:
+address withdrawalAddress = 0x1234567890123456789012345678901234567890;
+
+// ✅ Do this:
+// TODO: Set withdrawal address — address goes here
+address withdrawalAddress; // Set via setWithdrawalAddress()
+```
+
+---
+
 ## Extensibility Principles
 
 > Only introduce complexity when it meaningfully increases usability or security.
