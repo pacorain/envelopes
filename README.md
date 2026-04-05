@@ -213,4 +213,4 @@ This project aims to stay auditable, forkable, and self-hostable. The intended e
 
 ## License
 
-MIT
+Personal use only
