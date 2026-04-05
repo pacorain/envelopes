@@ -1,0 +1,32 @@
+{
+  "version": "0.1",
+  "description": "Claude Code settings for Envelopes dApp",
+  "permissions": {
+    "auto_approve": {
+      "Bash": [
+        "npm install",
+        "npm run compile",
+        "npm run test",
+        "npm run contracts:compile",
+        "npm run contracts:test",
+        "npm run frontend:build",
+        "npm run frontend:dev",
+        "npx hardhat compile",
+        "npx hardhat test",
+        "git status",
+        "git log",
+        "git diff",
+        "git branch",
+        "git remote",
+        "gh pr list",
+        "gh issue list",
+        "gh api"
+      ],
+      "Edit": true,
+      "Write": true,
+      "Read": true,
+      "Glob": true,
+      "Grep": true
+    }
+  }
+}
