@@ -1,6 +1,0 @@
-# crytic-compile 0.3.11 (bundled with current slither releases) does not support
-# Hardhat 3's split build artifact format (hh3-sol-build-info-1). The fix was
-# merged to the dev branch in Jan 2026 (crytic/crytic-compile#631).
-# TODO: remove this file and the slither-plugins param in ci-slither.yml once
-#       crytic-compile >=0.3.12 is available on PyPI.
-git+https://github.com/crytic/crytic-compile.git@dev
