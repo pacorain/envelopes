@@ -14,12 +14,10 @@ jobs:
       security-events: write
     steps:
       - uses: actions/checkout@v4
-      - run: pip install "crytic-compile" --upgrade
       - uses: crytic/slither-action@v0.4.2
         id: slither
         with:
-          node-version: '22'
-          target: 'contracts/'
+          target: 'contracts/contracts/'
           slither-args: '--checklist --markdown-root ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}/'
           sarif: results.sarif
           fail-on: none
