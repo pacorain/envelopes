@@ -9,6 +9,8 @@ on:
     types: [opened, assigned]
   pull_request_review:
     types: [submitted]
+  projects_v2_item:
+    types: [edited]
 
 jobs:
   claude:
@@ -16,35 +18,53 @@ jobs:
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
       (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
       (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
-      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
+      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude'))) ||
+      (github.event_name == 'projects_v2_item' && github.event.projects_v2_item.content_type == 'Issue' && github.event.changes.field_value.to.name == 'Ready for AI')
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      pull-requests: read
-      issues: read
+      contents: write
+      pull-requests: write
+      issues: write
       id-token: write
-      actions: read # Required for Claude to read CI results on PRs
+      actions: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
+      - name: Resolve project item to issue
+        if: github.event_name == 'projects_v2_item'
+        id: project_item
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const nodeId = context.payload.projects_v2_item.content_node_id;
+            const result = await github.graphql(`
+              query($nodeId: ID!) {
+                node(id: $nodeId) {
+                  ... on Issue {
+                    number
+                  }
+                }
+              }
+            `, { nodeId });
+            core.setOutput('issue_number', result.node.number);
+
+      - name: Set prompt for project board trigger
+        if: github.event_name == 'projects_v2_item'
+        run: |
+          ISSUE_NUM="${{ steps.project_item.outputs.issue_number }}"
+          echo "TRIGGER_PROMPT=This issue was moved to \"Ready for AI\" on the project board. Please implement the issue. When you open a PR, include \"Closes #${ISSUE_NUM}\" in the PR description so the issue is automatically closed when the PR is merged. Use the gh CLI to move this issue to \"In Progress\" on the project board when you begin, and to \"In Review\" once the PR is open." >> "$GITHUB_ENV"
+
       - name: Run Claude Code
         id: claude
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          issue_number: ${{ steps.project_item.outputs.issue_number }}
+          prompt: ${{ env.TRIGGER_PROMPT }}
 
           # This is an optional setting that allows Claude to read CI results on PRs
           additional_permissions: |
             actions: read
-
-          # Optional: Give a custom prompt to Claude. If this is not specified, Claude will perform the instructions specified in the comment that tagged it.
-          # prompt: 'Update the pull request description to include a summary of changes.'
-
-          # Optional: Add claude_args to customize behavior and configuration
-          # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
-          # or https://code.claude.com/docs/en/cli-reference for available options
-          # claude_args: '--allowed-tools Bash(gh pr:*)'
-
