@@ -53,6 +53,16 @@ describe("Portfolio", function () {
       );
     });
 
+    it("reverts when token address is an EOA (not a contract)", async function () {
+      const Portfolio = await ethers.getContractFactory("Portfolio");
+      await expect(
+        Portfolio.deploy(otherAccount.address, withdrawalAddress)
+      ).to.be.revertedWithCustomError(
+        { interface: (await ethers.getContractFactory("Portfolio")).interface },
+        "InvalidToken"
+      );
+    });
+
     it("reverts when withdrawal address is zero", async function () {
       const Portfolio = await ethers.getContractFactory("Portfolio");
       await expect(

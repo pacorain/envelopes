@@ -23,6 +23,7 @@ contract Portfolio {
 
     error OnlyAdmin();
     error ZeroAddress();
+    error InvalidToken();
 
     event WithdrawalAddressSet(address indexed newWithdrawalAddress);
 
@@ -37,6 +38,7 @@ contract Portfolio {
      */
     constructor(address token_, address withdrawalAddress_) {
         if (token_ == address(0)) revert ZeroAddress();
+        if (token_.code.length == 0) revert InvalidToken();
         if (withdrawalAddress_ == address(0)) revert ZeroAddress();
         token = token_;
         admin = msg.sender;
