@@ -18,7 +18,7 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-      - run: npm install
+      - run: npm install --workspace=contracts
       - uses: crytic/slither-action@v0.4.2
         id: slither
         with:
