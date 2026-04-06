@@ -27,6 +27,7 @@ jobs:
             --checklist
             --markdown-root ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}/
             --solc-remaps @openzeppelin/=node_modules/@openzeppelin/
+            --filter-paths node_modules
           sarif: results.sarif
           fail-on: high
       - name: Post Slither results as PR comment
