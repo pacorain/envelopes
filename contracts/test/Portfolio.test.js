@@ -74,39 +74,79 @@ describe("Portfolio", function () {
     });
   });
 
-  describe("transferAdmin()", function () {
-    it("allows admin to transfer admin rights", async function () {
-      await portfolio.connect(admin).transferAdmin(otherAccount.address);
-      expect(await portfolio.admin()).to.equal(otherAccount.address);
+  describe("proposeAdmin()", function () {
+    it("sets pendingAdmin", async function () {
+      await portfolio.connect(admin).proposeAdmin(otherAccount.address);
+      expect(await portfolio.pendingAdmin()).to.equal(otherAccount.address);
     });
 
-    it("emits AdminTransferred on transfer", async function () {
-      await expect(portfolio.connect(admin).transferAdmin(otherAccount.address))
-        .to.emit(portfolio, "AdminTransferred")
+    it("does not change admin immediately", async function () {
+      await portfolio.connect(admin).proposeAdmin(otherAccount.address);
+      expect(await portfolio.admin()).to.equal(admin.address);
+    });
+
+    it("emits AdminTransferProposed", async function () {
+      await expect(portfolio.connect(admin).proposeAdmin(otherAccount.address))
+        .to.emit(portfolio, "AdminTransferProposed")
         .withArgs(admin.address, otherAccount.address);
     });
 
     it("reverts when called by non-admin", async function () {
       await expect(
-        portfolio.connect(otherAccount).transferAdmin(otherAccount.address)
+        portfolio.connect(otherAccount).proposeAdmin(otherAccount.address)
       ).to.be.revertedWithCustomError(portfolio, "OnlyAdmin");
     });
 
-    it("reverts when new admin address is zero", async function () {
+    it("reverts when proposed address is zero", async function () {
       await expect(
-        portfolio.connect(admin).transferAdmin(ethers.ZeroAddress)
+        portfolio.connect(admin).proposeAdmin(ethers.ZeroAddress)
       ).to.be.revertedWithCustomError(portfolio, "ZeroAddress");
     });
+  });
 
-    it("new admin can perform admin actions after transfer", async function () {
-      await portfolio.connect(admin).transferAdmin(otherAccount.address);
+  describe("acceptAdmin()", function () {
+    beforeEach(async function () {
+      await portfolio.connect(admin).proposeAdmin(otherAccount.address);
+    });
+
+    it("sets admin to pendingAdmin", async function () {
+      await portfolio.connect(otherAccount).acceptAdmin();
+      expect(await portfolio.admin()).to.equal(otherAccount.address);
+    });
+
+    it("clears pendingAdmin after acceptance", async function () {
+      await portfolio.connect(otherAccount).acceptAdmin();
+      expect(await portfolio.pendingAdmin()).to.equal(ethers.ZeroAddress);
+    });
+
+    it("emits AdminTransferred on acceptance", async function () {
+      await expect(portfolio.connect(otherAccount).acceptAdmin())
+        .to.emit(portfolio, "AdminTransferred")
+        .withArgs(admin.address, otherAccount.address);
+    });
+
+    it("reverts when called by non-pendingAdmin", async function () {
+      const [, , thirdAccount] = await ethers.getSigners();
+      await expect(
+        portfolio.connect(thirdAccount).acceptAdmin()
+      ).to.be.revertedWithCustomError(portfolio, "OnlyPendingAdmin");
+    });
+
+    it("reverts when called by current admin (not pendingAdmin)", async function () {
+      await expect(
+        portfolio.connect(admin).acceptAdmin()
+      ).to.be.revertedWithCustomError(portfolio, "OnlyPendingAdmin");
+    });
+
+    it("new admin can perform admin actions after acceptance", async function () {
+      await portfolio.connect(otherAccount).acceptAdmin();
       const [, , newWithdrawal] = await ethers.getSigners();
       await portfolio.connect(otherAccount).setWithdrawalAddress(newWithdrawal.address);
       expect(await portfolio.withdrawalAddress()).to.equal(newWithdrawal.address);
     });
 
-    it("old admin can no longer perform admin actions after transfer", async function () {
-      await portfolio.connect(admin).transferAdmin(otherAccount.address);
+    it("old admin can no longer perform admin actions after acceptance", async function () {
+      await portfolio.connect(otherAccount).acceptAdmin();
       const [, , newWithdrawal] = await ethers.getSigners();
       await expect(
         portfolio.connect(admin).setWithdrawalAddress(newWithdrawal.address)

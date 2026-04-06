@@ -18,14 +18,19 @@ contract Portfolio {
     /// @notice The admin address — set to the deployer. Privileged operations only.
     address public admin;
 
+    /// @notice Pending admin address proposed by the current admin. Must call acceptAdmin() to take effect.
+    address public pendingAdmin;
+
     /// @notice The only external address to which funds may be withdrawn.
     address public withdrawalAddress;
 
     error OnlyAdmin();
+    error OnlyPendingAdmin();
     error ZeroAddress();
     error InvalidToken();
 
     event WithdrawalAddressSet(address indexed newWithdrawalAddress);
+    event AdminTransferProposed(address indexed currentAdmin, address indexed proposedAdmin);
     event AdminTransferred(address indexed previousAdmin, address indexed newAdmin);
 
     modifier onlyAdmin() {
@@ -48,14 +53,25 @@ contract Portfolio {
     }
 
     /**
-     * @notice Transfer admin rights to a new address.
-     * @dev Admin only. Reverts on zero address.
-     * @param newAdmin The address to transfer admin rights to.
+     * @notice Propose a new admin. The proposed address must call acceptAdmin() to complete the transfer.
+     * @dev Admin only. Reverts on zero address. Does not change admin until acceptAdmin() is called.
+     * @param newAdmin The address being proposed as the new admin.
      */
-    function transferAdmin(address newAdmin) external onlyAdmin {
+    function proposeAdmin(address newAdmin) external onlyAdmin {
         if (newAdmin == address(0)) revert ZeroAddress();
-        emit AdminTransferred(admin, newAdmin);
-        admin = newAdmin;
+        pendingAdmin = newAdmin;
+        emit AdminTransferProposed(admin, newAdmin);
+    }
+
+    /**
+     * @notice Accept a pending admin transfer. Must be called by the pending admin.
+     * @dev Reverts if the caller is not the pending admin.
+     */
+    function acceptAdmin() external {
+        if (msg.sender != pendingAdmin) revert OnlyPendingAdmin();
+        emit AdminTransferred(admin, pendingAdmin);
+        admin = pendingAdmin;
+        pendingAdmin = address(0);
     }
 
     /**
