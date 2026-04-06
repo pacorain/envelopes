@@ -26,6 +26,7 @@ contract Portfolio {
     error InvalidToken();
 
     event WithdrawalAddressSet(address indexed newWithdrawalAddress);
+    event AdminTransferred(address indexed previousAdmin, address indexed newAdmin);
 
     modifier onlyAdmin() {
         if (msg.sender != admin) revert OnlyAdmin();
@@ -44,6 +45,17 @@ contract Portfolio {
         admin = msg.sender;
         withdrawalAddress = withdrawalAddress_;
         emit WithdrawalAddressSet(withdrawalAddress_);
+    }
+
+    /**
+     * @notice Transfer admin rights to a new address.
+     * @dev Admin only. Reverts on zero address.
+     * @param newAdmin The address to transfer admin rights to.
+     */
+    function transferAdmin(address newAdmin) external onlyAdmin {
+        if (newAdmin == address(0)) revert ZeroAddress();
+        emit AdminTransferred(admin, newAdmin);
+        admin = newAdmin;
     }
 
     /**

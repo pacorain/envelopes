@@ -74,6 +74,46 @@ describe("Portfolio", function () {
     });
   });
 
+  describe("transferAdmin()", function () {
+    it("allows admin to transfer admin rights", async function () {
+      await portfolio.connect(admin).transferAdmin(otherAccount.address);
+      expect(await portfolio.admin()).to.equal(otherAccount.address);
+    });
+
+    it("emits AdminTransferred on transfer", async function () {
+      await expect(portfolio.connect(admin).transferAdmin(otherAccount.address))
+        .to.emit(portfolio, "AdminTransferred")
+        .withArgs(admin.address, otherAccount.address);
+    });
+
+    it("reverts when called by non-admin", async function () {
+      await expect(
+        portfolio.connect(otherAccount).transferAdmin(otherAccount.address)
+      ).to.be.revertedWithCustomError(portfolio, "OnlyAdmin");
+    });
+
+    it("reverts when new admin address is zero", async function () {
+      await expect(
+        portfolio.connect(admin).transferAdmin(ethers.ZeroAddress)
+      ).to.be.revertedWithCustomError(portfolio, "ZeroAddress");
+    });
+
+    it("new admin can perform admin actions after transfer", async function () {
+      await portfolio.connect(admin).transferAdmin(otherAccount.address);
+      const [, , newWithdrawal] = await ethers.getSigners();
+      await portfolio.connect(otherAccount).setWithdrawalAddress(newWithdrawal.address);
+      expect(await portfolio.withdrawalAddress()).to.equal(newWithdrawal.address);
+    });
+
+    it("old admin can no longer perform admin actions after transfer", async function () {
+      await portfolio.connect(admin).transferAdmin(otherAccount.address);
+      const [, , newWithdrawal] = await ethers.getSigners();
+      await expect(
+        portfolio.connect(admin).setWithdrawalAddress(newWithdrawal.address)
+      ).to.be.revertedWithCustomError(portfolio, "OnlyAdmin");
+    });
+  });
+
   describe("setWithdrawalAddress()", function () {
     it("allows admin to update the withdrawal address", async function () {
       const [, , newWithdrawal] = await ethers.getSigners();
