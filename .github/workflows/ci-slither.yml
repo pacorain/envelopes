@@ -14,11 +14,19 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm install --workspace=contracts
       - uses: crytic/slither-action@v0.4.2
         id: slither
         with:
           target: 'contracts/contracts/'
-          slither-args: '--checklist --markdown-root ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}/'
+          slither-args: >-
+            --checklist
+            --markdown-root ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}/
+            --solc-remaps @openzeppelin/=node_modules/@openzeppelin/
           sarif: results.sarif
           fail-on: high
       - name: Post Slither results as PR comment
