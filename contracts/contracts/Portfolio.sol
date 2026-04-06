@@ -36,6 +36,7 @@ contract Portfolio {
      * @param withdrawalAddress_ The initial withdrawal address (must be non-zero).
      */
     constructor(address token_, address withdrawalAddress_) {
+        if (token_ == address(0)) revert ZeroAddress();
         if (withdrawalAddress_ == address(0)) revert ZeroAddress();
         token = token_;
         admin = msg.sender;
