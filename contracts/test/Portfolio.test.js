@@ -35,6 +35,14 @@ describe("Portfolio", function () {
       expect(await portfolio.withdrawalAddress()).to.equal(withdrawalAddress);
     });
 
+    it("emits AdminTransferred on deploy", async function () {
+      const Portfolio = await ethers.getContractFactory("Portfolio");
+      const tx = Portfolio.deploy(await token.getAddress(), withdrawalAddress);
+      await expect(tx)
+        .to.emit(await tx, "AdminTransferred")
+        .withArgs(ethers.ZeroAddress, admin.address);
+    });
+
     it("emits WithdrawalAddressSet on deploy", async function () {
       const Portfolio = await ethers.getContractFactory("Portfolio");
       const tx = Portfolio.deploy(await token.getAddress(), withdrawalAddress);

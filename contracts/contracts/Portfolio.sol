@@ -49,6 +49,7 @@ contract Portfolio {
         token = token_;
         admin = msg.sender;
         withdrawalAddress = withdrawalAddress_;
+        emit AdminTransferred(address(0), msg.sender);
         emit WithdrawalAddressSet(withdrawalAddress_);
     }
 
