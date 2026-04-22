@@ -162,6 +162,41 @@ describe("Portfolio", function () {
     });
   });
 
+  describe("cancelPendingAdmin()", function () {
+    beforeEach(async function () {
+      await portfolio.connect(admin).proposeAdmin(otherAccount.address);
+    });
+
+    it("clears pendingAdmin", async function () {
+      await portfolio.connect(admin).cancelPendingAdmin();
+      expect(await portfolio.pendingAdmin()).to.equal(ethers.ZeroAddress);
+    });
+
+    it("does not change admin", async function () {
+      await portfolio.connect(admin).cancelPendingAdmin();
+      expect(await portfolio.admin()).to.equal(admin.address);
+    });
+
+    it("emits AdminTransferCancelled", async function () {
+      await expect(portfolio.connect(admin).cancelPendingAdmin())
+        .to.emit(portfolio, "AdminTransferCancelled")
+        .withArgs(admin.address, otherAccount.address);
+    });
+
+    it("reverts when called by non-admin", async function () {
+      await expect(
+        portfolio.connect(otherAccount).cancelPendingAdmin()
+      ).to.be.revertedWithCustomError(portfolio, "OnlyAdmin");
+    });
+
+    it("acceptAdmin() reverts after cancelPendingAdmin() is called", async function () {
+      await portfolio.connect(admin).cancelPendingAdmin();
+      await expect(
+        portfolio.connect(otherAccount).acceptAdmin()
+      ).to.be.revertedWithCustomError(portfolio, "OnlyPendingAdmin");
+    });
+  });
+
   describe("setWithdrawalAddress()", function () {
     it("allows admin to update the withdrawal address", async function () {
       const [, , newWithdrawal] = await ethers.getSigners();

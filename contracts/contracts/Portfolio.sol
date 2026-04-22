@@ -31,6 +31,7 @@ contract Portfolio {
 
     event WithdrawalAddressSet(address indexed newWithdrawalAddress);
     event AdminTransferProposed(address indexed currentAdmin, address indexed proposedAdmin);
+    event AdminTransferCancelled(address indexed admin, address indexed cancelledPendingAdmin);
     event AdminTransferred(address indexed previousAdmin, address indexed newAdmin);
 
     modifier onlyAdmin() {
@@ -62,6 +63,16 @@ contract Portfolio {
         if (newAdmin == address(0)) revert ZeroAddress();
         pendingAdmin = newAdmin;
         emit AdminTransferProposed(admin, newAdmin);
+    }
+
+    /**
+     * @notice Cancel a pending admin transfer proposal.
+     * @dev Admin only. Clears pendingAdmin so the proposed address can no longer accept.
+     */
+    function cancelPendingAdmin() external onlyAdmin {
+        address cancelled = pendingAdmin;
+        pendingAdmin = address(0);
+        emit AdminTransferCancelled(admin, cancelled);
     }
 
     /**
