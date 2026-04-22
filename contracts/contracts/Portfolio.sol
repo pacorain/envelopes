@@ -70,9 +70,10 @@ contract Portfolio {
      */
     function acceptAdmin() external {
         if (msg.sender != pendingAdmin) revert OnlyPendingAdmin();
-        emit AdminTransferred(admin, pendingAdmin);
+        address previousAdmin = admin;
         admin = pendingAdmin;
         pendingAdmin = address(0);
+        emit AdminTransferred(previousAdmin, admin);
     }
 
     /**
