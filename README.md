@@ -4,6 +4,9 @@ A decentralized envelope budgeting system built on EVM-compatible blockchains. I
 
 Fully open-source. No backend required. Deployable as a static site.
 
+> **Personal Project**  
+> This is an independent, personal project. It is not affiliated with, endorsed by, or developed as part of any employer relationship.
+
 ---
 
 ## Concept
@@ -213,6 +216,4 @@ This project aims to stay auditable, forkable, and self-hostable. The intended e
 
 ## License
 
-**Private: Pending review**. Copyright 2026 Austin Rainwater. All rights reserved.
-
-This project is under review for IP clearance. 
+All code is open-source under the MIT License. See [LICENSE](LICENSE) for details.

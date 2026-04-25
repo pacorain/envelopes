@@ -7,6 +7,9 @@ yarn.lock
 .env.local
 .env.*.local
 
+# Claude Code local settings
+.claude/
+
 # Hardhat
 artifacts/
 cache/
