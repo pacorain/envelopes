@@ -2,7 +2,6 @@
   "name": "envelopes",
   "version": "0.0.1",
   "description": "On-Chain Envelope Budgeting dApp",
-  "private": true,
   "workspaces": [
     "contracts",
     "frontend"
