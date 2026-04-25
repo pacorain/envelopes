@@ -13,5 +13,8 @@
     "frontend:dev": "npm run dev -w frontend",
     "frontend:build": "npm run build -w frontend",
     "frontend:preview": "npm run preview -w frontend"
+  },
+  "dependencies": {
+    "solc": "^0.8.34"
   }
 }

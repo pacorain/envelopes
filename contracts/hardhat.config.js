@@ -1,8 +1,12 @@
-import "@nomicfoundation/hardhat-toolbox-mocha-ethers";
+import hardhatToolbox from "@nomicfoundation/hardhat-toolbox-mocha-ethers";
 
 /** @type import('hardhat/config').HardhatUserConfig */
 const config = {
-  solidity: "0.8.34",
+  plugins: [hardhatToolbox],
+  solidity: {
+    version: "0.8.34",
+    preferWasm: true,
+  },
   networks: {
     base: {
       type: "http",

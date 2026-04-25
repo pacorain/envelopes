@@ -1,5 +1,6 @@
 import { expect } from "chai";
-import { ethers } from "hardhat";
+import { network } from "hardhat";
+import { ZeroAddress } from "ethers";
 
 describe("Envelope", function () {
   let envelope;
@@ -7,8 +8,10 @@ describe("Envelope", function () {
   let otherToken;
   let portfolio;
   let otherAccount;
+  let ethers;
 
   beforeEach(async function () {
+    ({ ethers } = await network.connect());
     [portfolio, otherAccount] = await ethers.getSigners();
 
     const MockERC20 = await ethers.getContractFactory("MockERC20");
@@ -28,7 +31,7 @@ describe("Envelope", function () {
       const Envelope = await ethers.getContractFactory("Envelope");
       await expect(
         Envelope.deploy(
-          ethers.ZeroAddress,
+          ZeroAddress,
           await token.getAddress(),
           ethers.encodeBytes32String("test")
         )
@@ -135,7 +138,6 @@ describe("Envelope", function () {
 
   describe("sendFunds() — additional", function () {
     it("only the portfolio can move funds — any other caller is rejected", async function () {
-      // Deploy a second envelope to use as a caller (simulates a rogue contract)
       const Envelope = await ethers.getContractFactory("Envelope");
       const rogueEnvelope = await Envelope.deploy(
         otherAccount.address,
@@ -143,7 +145,6 @@ describe("Envelope", function () {
         ethers.encodeBytes32String("rogue")
       );
 
-      // otherAccount is not the portfolio of `envelope`, so this must revert
       await expect(
         envelope.connect(otherAccount).sendFunds(await rogueEnvelope.getAddress(), 500n)
       ).to.be.revertedWithCustomError(envelope, "OnlyPortfolio");
