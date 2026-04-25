@@ -70,6 +70,7 @@ contract Portfolio {
     }
 
     /// @notice Reject any ETH sent directly to this contract.
+    // slither-disable-next-line locked-ether
     receive() external payable {
         revert ETHNotAccepted();
     }
@@ -249,8 +250,8 @@ contract Portfolio {
         if (from == to) revert SameEnvelope();
         Envelope source = _getEnvelope(from);
         address dest = address(_getEnvelope(to));
-        source.sendFunds(dest, amount);
         emit FundsMoved(from, to, amount);
+        source.sendFunds(dest, amount);
     }
 
     /**
@@ -261,8 +262,8 @@ contract Portfolio {
      * @param amount Amount of tokens to withdraw.
      */
     function withdrawFromEnvelope(uint256 index, uint256 amount) external onlyManager {
-        _getEnvelope(index).sendFunds(withdrawalAddress, amount);
         emit EnvelopeWithdrawn(index, amount);
+        _getEnvelope(index).sendFunds(withdrawalAddress, amount);
     }
 
     // -------------------------------------------------------------------------
