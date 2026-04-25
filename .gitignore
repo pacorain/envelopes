@@ -13,6 +13,7 @@ yarn.lock
 # Hardhat
 artifacts/
 cache/
+types/
 
 # Vite
 dist/
