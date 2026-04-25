@@ -197,6 +197,54 @@ describe("Portfolio", function () {
     });
   });
 
+  describe("addManager()", function () {
+    it("grants the manager role", async function () {
+      await portfolio.connect(admin).addManager(otherAccount.address);
+      expect(await portfolio.managers(otherAccount.address)).to.be.true;
+    });
+
+    it("emits ManagerAdded", async function () {
+      await expect(portfolio.connect(admin).addManager(otherAccount.address))
+        .to.emit(portfolio, "ManagerAdded")
+        .withArgs(otherAccount.address);
+    });
+
+    it("reverts when called by non-admin", async function () {
+      await expect(
+        portfolio.connect(otherAccount).addManager(otherAccount.address)
+      ).to.be.revertedWithCustomError(portfolio, "OnlyAdmin");
+    });
+
+    it("reverts when address is zero", async function () {
+      await expect(
+        portfolio.connect(admin).addManager(ethers.ZeroAddress)
+      ).to.be.revertedWithCustomError(portfolio, "ZeroAddress");
+    });
+  });
+
+  describe("removeManager()", function () {
+    beforeEach(async function () {
+      await portfolio.connect(admin).addManager(otherAccount.address);
+    });
+
+    it("revokes the manager role", async function () {
+      await portfolio.connect(admin).removeManager(otherAccount.address);
+      expect(await portfolio.managers(otherAccount.address)).to.be.false;
+    });
+
+    it("emits ManagerRemoved", async function () {
+      await expect(portfolio.connect(admin).removeManager(otherAccount.address))
+        .to.emit(portfolio, "ManagerRemoved")
+        .withArgs(otherAccount.address);
+    });
+
+    it("reverts when called by non-admin", async function () {
+      await expect(
+        portfolio.connect(otherAccount).removeManager(otherAccount.address)
+      ).to.be.revertedWithCustomError(portfolio, "OnlyAdmin");
+    });
+  });
+
   describe("setWithdrawalAddress()", function () {
     it("allows admin to update the withdrawal address", async function () {
       const [, , newWithdrawal] = await ethers.getSigners();
