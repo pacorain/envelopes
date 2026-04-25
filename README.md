@@ -4,6 +4,11 @@ A decentralized envelope budgeting system built on EVM-compatible blockchains. I
 
 Fully open-source. No backend required. Deployable as a static site.
 
+> **In development**
+> This project is a work in progress. The current version (v1) includes core contract functionality and a basic UI for portfolio management. Planned features for v2 include a factory contract for easier portfolio creation, on-chain registry, and enhanced UI capabilities.
+>
+> Until v1 is released, the codebase is in active development and is not yet audited. Any deployed artifacts should be considered experimental, and can lead to loss of funds. Use at your own risk.
+
 > **Personal Project**  
 > This is an independent, personal project. It is not affiliated with, endorsed by, or developed as part of any employer relationship.
 
