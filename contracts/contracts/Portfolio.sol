@@ -2,6 +2,7 @@
 pragma solidity 0.8.34;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title Portfolio
@@ -12,6 +13,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  * contracts are dumb vaults with no independent authorization.
  */
 contract Portfolio {
+    using SafeERC20 for IERC20;
+
     /// @notice The ERC-20 token used across this portfolio (e.g. USDC).
     address public immutable token;
 
@@ -32,7 +35,11 @@ contract Portfolio {
     error OnlyManager();
     error ZeroAddress();
     error InvalidToken();
+    error ETHNotAccepted();
+    error InsufficientUnallocated();
 
+    event Deposited(address indexed from, uint256 amount);
+    event UnallocatedWithdrawn(uint256 amount);
     event WithdrawalAddressSet(address indexed newWithdrawalAddress);
     event AdminTransferProposed(address indexed currentAdmin, address indexed proposedAdmin);
     event AdminTransferCancelled(address indexed admin, address indexed cancelledPendingAdmin);
@@ -134,5 +141,39 @@ contract Portfolio {
         if (!managers[manager]) return;
         managers[manager] = false;
         emit ManagerRemoved(manager);
+    }
+
+    /**
+     * @notice Deposit tokens into the portfolio. Deposited funds become unallocated.
+     * @dev Any caller. Requires prior approval of at least `amount` on the token contract.
+     * @param amount The number of tokens to deposit.
+     */
+    function deposit(uint256 amount) external {
+        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+        emit Deposited(msg.sender, amount);
+    }
+
+    /**
+     * @notice Returns the unallocated token balance — funds held by this contract not yet routed to an envelope.
+     */
+    function unallocated() public view returns (uint256) {
+        return IERC20(token).balanceOf(address(this));
+    }
+
+    /**
+     * @notice Withdraw unallocated funds to the withdrawal address.
+     * @dev Admin only. Reverts if `amount` exceeds the unallocated balance.
+     * @param amount The number of tokens to withdraw.
+     */
+    function withdrawUnallocated(uint256 amount) external onlyAdmin {
+        if (amount > unallocated()) revert InsufficientUnallocated();
+        IERC20(token).safeTransfer(withdrawalAddress, amount);
+        emit UnallocatedWithdrawn(amount);
+    }
+
+    /// @dev Reject ETH transfers — this contract is ERC-20 only.
+    // slither-disable-next-line locked-ether
+    receive() external payable {
+        revert ETHNotAccepted();
     }
 }
