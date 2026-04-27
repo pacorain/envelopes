@@ -402,29 +402,25 @@ describe("Portfolio", function () {
     it("deploys an Envelope contract with this portfolio as the owner", async function () {
       await portfolio.connect(admin).createEnvelope(NAME);
       const envelopeAddress = await portfolio.envelopes(0);
-      const Envelope = await ethers.getContractFactory("Envelope");
-      const envelope = Envelope.attach(envelopeAddress);
+      const envelope = await ethers.getContractAt("Envelope", envelopeAddress);
       expect(await envelope.portfolio()).to.equal(await portfolio.getAddress());
     });
 
     it("deployed envelope holds the correct name", async function () {
       await portfolio.connect(admin).createEnvelope(NAME);
       const envelopeAddress = await portfolio.envelopes(0);
-      const Envelope = await ethers.getContractFactory("Envelope");
-      const envelope = Envelope.attach(envelopeAddress);
+      const envelope = await ethers.getContractAt("Envelope", envelopeAddress);
       expect(await envelope.name()).to.equal(NAME);
     });
 
     it("emits EnvelopeCreated with correct index, address, and name", async function () {
-      const tx = await portfolio.connect(admin).createEnvelope(NAME);
-      const receipt = await tx.wait();
+      const txPromise = portfolio.connect(admin).createEnvelope(NAME);
+      const txResponse = await txPromise;
+      await txResponse.wait();
       const envelopeAddress = await portfolio.envelopes(0);
-      const parsed = receipt.logs
-        .map((l) => { try { return portfolio.interface.parseLog(l); } catch { return null; } })
-        .find((l) => l?.name === "EnvelopeCreated");
-      expect(parsed.args.index).to.equal(0n);
-      expect(parsed.args.name).to.equal(NAME);
-      expect(parsed.args.envelope).to.equal(envelopeAddress);
+      await expect(txPromise)
+        .to.emit(portfolio, "EnvelopeCreated")
+        .withArgs(0n, envelopeAddress, NAME);
     });
 
     it("reverts when called by a non-manager", async function () {
@@ -509,8 +505,7 @@ describe("Portfolio", function () {
     it("increases the envelope token balance", async function () {
       await portfolio.connect(admin).allocate(0, AMOUNT);
       const envelopeAddress = await portfolio.envelopes(0);
-      const Envelope = await ethers.getContractFactory("Envelope");
-      const envelope = Envelope.attach(envelopeAddress);
+      const envelope = await ethers.getContractAt("Envelope", envelopeAddress);
       expect(await envelope.balance()).to.equal(AMOUNT);
     });
 
@@ -525,8 +520,7 @@ describe("Portfolio", function () {
       await portfolio.connect(admin).allocate(0, half);
       expect(await portfolio.unallocated()).to.equal(AMOUNT - half);
       const envelopeAddress = await portfolio.envelopes(0);
-      const Envelope = await ethers.getContractFactory("Envelope");
-      const envelope = Envelope.attach(envelopeAddress);
+      const envelope = await ethers.getContractAt("Envelope", envelopeAddress);
       expect(await envelope.balance()).to.equal(half);
     });
 
