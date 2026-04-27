@@ -180,11 +180,12 @@ contract Portfolio {
      * @param name A bytes32 identifier for the envelope (e.g. keccak256("mortgage")).
      */
     // slither-disable-next-line reentrancy-no-eth
-    function createEnvelope(bytes32 name) external onlyManager returns (uint256 index) {
+    function createEnvelope(bytes32 name) external onlyManager returns (uint256) {
         address envelopeAddr = address(new Envelope(address(this), IERC20(token), name));
-        index = envelopes.length;
+        uint256 index = envelopes.length;
         envelopes.push(envelopeAddr);
         emit EnvelopeCreated(index, envelopeAddr, name);
+        return index;
     }
 
     /**

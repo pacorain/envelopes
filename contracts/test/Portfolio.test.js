@@ -384,7 +384,10 @@ describe("Portfolio", function () {
   });
 
   describe("createEnvelope()", function () {
-    const NAME = ethers.encodeBytes32String("mortgage");
+    let NAME;
+    beforeEach(async function () {
+      NAME = ethers.encodeBytes32String("mortgage");
+    });
 
     it("returns sequential indices starting at 0", async function () {
       await portfolio.connect(admin).createEnvelope(NAME);
@@ -442,10 +445,8 @@ describe("Portfolio", function () {
   });
 
   describe("deleteEnvelope()", function () {
-    const NAME = ethers.encodeBytes32String("car");
-
     beforeEach(async function () {
-      await portfolio.connect(admin).createEnvelope(NAME);
+      await portfolio.connect(admin).createEnvelope(ethers.encodeBytes32String("car"));
     });
 
     it("sets the envelope slot to address(0)", async function () {
@@ -492,10 +493,9 @@ describe("Portfolio", function () {
 
   describe("allocate()", function () {
     const AMOUNT = 500n * 10n ** 6n;
-    const NAME = ethers.encodeBytes32String("savings");
 
     beforeEach(async function () {
-      await portfolio.connect(admin).createEnvelope(NAME);
+      await portfolio.connect(admin).createEnvelope(ethers.encodeBytes32String("savings"));
       await token.mint(admin.address, AMOUNT);
       await token.connect(admin).approve(await portfolio.getAddress(), AMOUNT);
       await portfolio.connect(admin).deposit(AMOUNT);
