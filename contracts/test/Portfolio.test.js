@@ -197,6 +197,54 @@ describe("Portfolio", function () {
     });
   });
 
+  describe("addManager()", function () {
+    it("grants the manager role", async function () {
+      await portfolio.connect(admin).addManager(otherAccount.address);
+      expect(await portfolio.managers(otherAccount.address)).to.be.true;
+    });
+
+    it("emits ManagerAdded", async function () {
+      await expect(portfolio.connect(admin).addManager(otherAccount.address))
+        .to.emit(portfolio, "ManagerAdded")
+        .withArgs(otherAccount.address);
+    });
+
+    it("reverts when called by non-admin", async function () {
+      await expect(
+        portfolio.connect(otherAccount).addManager(otherAccount.address)
+      ).to.be.revertedWithCustomError(portfolio, "OnlyAdmin");
+    });
+
+    it("reverts when address is zero", async function () {
+      await expect(
+        portfolio.connect(admin).addManager(ethers.ZeroAddress)
+      ).to.be.revertedWithCustomError(portfolio, "ZeroAddress");
+    });
+  });
+
+  describe("removeManager()", function () {
+    beforeEach(async function () {
+      await portfolio.connect(admin).addManager(otherAccount.address);
+    });
+
+    it("revokes the manager role", async function () {
+      await portfolio.connect(admin).removeManager(otherAccount.address);
+      expect(await portfolio.managers(otherAccount.address)).to.be.false;
+    });
+
+    it("emits ManagerRemoved", async function () {
+      await expect(portfolio.connect(admin).removeManager(otherAccount.address))
+        .to.emit(portfolio, "ManagerRemoved")
+        .withArgs(otherAccount.address);
+    });
+
+    it("reverts when called by non-admin", async function () {
+      await expect(
+        portfolio.connect(otherAccount).removeManager(otherAccount.address)
+      ).to.be.revertedWithCustomError(portfolio, "OnlyAdmin");
+    });
+  });
+
   describe("setWithdrawalAddress()", function () {
     it("allows admin to update the withdrawal address", async function () {
       const [, , newWithdrawal] = await ethers.getSigners();
@@ -223,6 +271,294 @@ describe("Portfolio", function () {
       await expect(
         portfolio.connect(admin).setWithdrawalAddress(ethers.ZeroAddress)
       ).to.be.revertedWithCustomError(portfolio, "ZeroAddress");
+    });
+  });
+
+  describe("deposit()", function () {
+    const DEPOSIT_AMOUNT = 1000n * 10n ** 6n; // 1000 USDC (6 decimals)
+
+    beforeEach(async function () {
+      await token.mint(admin.address, DEPOSIT_AMOUNT);
+      await token.connect(admin).approve(await portfolio.getAddress(), DEPOSIT_AMOUNT);
+    });
+
+    it("transfers tokens into the portfolio", async function () {
+      await portfolio.connect(admin).deposit(DEPOSIT_AMOUNT);
+      expect(await token.balanceOf(await portfolio.getAddress())).to.equal(DEPOSIT_AMOUNT);
+    });
+
+    it("increases unallocated() balance", async function () {
+      await portfolio.connect(admin).deposit(DEPOSIT_AMOUNT);
+      expect(await portfolio.unallocated()).to.equal(DEPOSIT_AMOUNT);
+    });
+
+    it("emits Deposited", async function () {
+      await expect(portfolio.connect(admin).deposit(DEPOSIT_AMOUNT))
+        .to.emit(portfolio, "Deposited")
+        .withArgs(admin.address, DEPOSIT_AMOUNT);
+    });
+
+    it("can be called by any account, not just admin", async function () {
+      await token.mint(otherAccount.address, DEPOSIT_AMOUNT);
+      await token.connect(otherAccount).approve(await portfolio.getAddress(), DEPOSIT_AMOUNT);
+      await expect(portfolio.connect(otherAccount).deposit(DEPOSIT_AMOUNT)).to.not.be.reverted;
+      expect(await portfolio.unallocated()).to.equal(DEPOSIT_AMOUNT);
+    });
+
+    it("reverts when caller has insufficient allowance", async function () {
+      await token.connect(admin).approve(await portfolio.getAddress(), 0n);
+      await expect(portfolio.connect(admin).deposit(DEPOSIT_AMOUNT)).to.be.reverted;
+    });
+  });
+
+  describe("unallocated()", function () {
+    const AMOUNT = 500n * 10n ** 6n;
+
+    it("returns zero when no tokens have been deposited", async function () {
+      expect(await portfolio.unallocated()).to.equal(0n);
+    });
+
+    it("includes tokens sent directly to the portfolio address (no deposit() call)", async function () {
+      await token.mint(admin.address, AMOUNT);
+      await token.connect(admin).transfer(await portfolio.getAddress(), AMOUNT);
+      expect(await portfolio.unallocated()).to.equal(AMOUNT);
+    });
+  });
+
+  describe("withdrawUnallocated()", function () {
+    const AMOUNT = 750n * 10n ** 6n;
+
+    beforeEach(async function () {
+      await token.mint(admin.address, AMOUNT);
+      await token.connect(admin).approve(await portfolio.getAddress(), AMOUNT);
+      await portfolio.connect(admin).deposit(AMOUNT);
+    });
+
+    it("sends tokens to the withdrawal address", async function () {
+      const before = await token.balanceOf(withdrawalAddress);
+      await portfolio.connect(admin).withdrawUnallocated(AMOUNT);
+      expect(await token.balanceOf(withdrawalAddress)).to.equal(before + AMOUNT);
+    });
+
+    it("reduces unallocated() balance", async function () {
+      const half = AMOUNT / 2n;
+      await portfolio.connect(admin).withdrawUnallocated(half);
+      expect(await portfolio.unallocated()).to.equal(AMOUNT - half);
+    });
+
+    it("emits UnallocatedWithdrawn", async function () {
+      await expect(portfolio.connect(admin).withdrawUnallocated(AMOUNT))
+        .to.emit(portfolio, "UnallocatedWithdrawn")
+        .withArgs(AMOUNT);
+    });
+
+    it("reverts when called by non-admin", async function () {
+      await expect(
+        portfolio.connect(otherAccount).withdrawUnallocated(AMOUNT)
+      ).to.be.revertedWithCustomError(portfolio, "OnlyAdmin");
+    });
+
+    it("reverts when amount exceeds unallocated balance", async function () {
+      await expect(
+        portfolio.connect(admin).withdrawUnallocated(AMOUNT + 1n)
+      ).to.be.revertedWithCustomError(portfolio, "InsufficientUnallocated");
+    });
+
+    it("sends to withdrawalAddress, not an arbitrary address", async function () {
+      const [, , thirdAccount] = await ethers.getSigners();
+      const before = await token.balanceOf(thirdAccount.address);
+      await portfolio.connect(admin).withdrawUnallocated(AMOUNT);
+      expect(await token.balanceOf(thirdAccount.address)).to.equal(before);
+    });
+  });
+
+  describe("receive()", function () {
+    it("reverts when ETH is sent directly", async function () {
+      await expect(
+        admin.sendTransaction({
+          to: await portfolio.getAddress(),
+          value: ethers.parseEther("1"),
+        })
+      ).to.be.revertedWithCustomError(portfolio, "ETHNotAccepted");
+    });
+  });
+
+  describe("createEnvelope()", function () {
+    const NAME = ethers.encodeBytes32String("mortgage");
+
+    it("returns sequential indices starting at 0", async function () {
+      await portfolio.connect(admin).createEnvelope(NAME);
+      await portfolio.connect(admin).createEnvelope(ethers.encodeBytes32String("groceries"));
+      const addr0 = await portfolio.envelopes(0);
+      const addr1 = await portfolio.envelopes(1);
+      expect(addr0).to.not.equal(ethers.ZeroAddress);
+      expect(addr1).to.not.equal(ethers.ZeroAddress);
+      expect(addr0).to.not.equal(addr1);
+    });
+
+    it("deploys an Envelope contract with this portfolio as the owner", async function () {
+      await portfolio.connect(admin).createEnvelope(NAME);
+      const envelopeAddress = await portfolio.envelopes(0);
+      const Envelope = await ethers.getContractFactory("Envelope");
+      const envelope = Envelope.attach(envelopeAddress);
+      expect(await envelope.portfolio()).to.equal(await portfolio.getAddress());
+    });
+
+    it("deployed envelope holds the correct name", async function () {
+      await portfolio.connect(admin).createEnvelope(NAME);
+      const envelopeAddress = await portfolio.envelopes(0);
+      const Envelope = await ethers.getContractFactory("Envelope");
+      const envelope = Envelope.attach(envelopeAddress);
+      expect(await envelope.name()).to.equal(NAME);
+    });
+
+    it("emits EnvelopeCreated with correct index, address, and name", async function () {
+      const tx = await portfolio.connect(admin).createEnvelope(NAME);
+      const receipt = await tx.wait();
+      const envelopeAddress = await portfolio.envelopes(0);
+      const parsed = receipt.logs
+        .map((l) => { try { return portfolio.interface.parseLog(l); } catch { return null; } })
+        .find((l) => l?.name === "EnvelopeCreated");
+      expect(parsed.args.index).to.equal(0n);
+      expect(parsed.args.name).to.equal(NAME);
+      expect(parsed.args.envelope).to.equal(envelopeAddress);
+    });
+
+    it("reverts when called by a non-manager", async function () {
+      const [, , stranger] = await ethers.getSigners();
+      await expect(
+        portfolio.connect(stranger).createEnvelope(NAME)
+      ).to.be.revertedWithCustomError(portfolio, "OnlyManager");
+    });
+
+    it("succeeds when called by a granted manager", async function () {
+      await portfolio.connect(admin).addManager(otherAccount.address);
+      await expect(portfolio.connect(otherAccount).createEnvelope(NAME)).to.not.be.reverted;
+    });
+
+    it("admin can create envelopes (implicitly a manager)", async function () {
+      await expect(portfolio.connect(admin).createEnvelope(NAME)).to.not.be.reverted;
+    });
+  });
+
+  describe("deleteEnvelope()", function () {
+    const NAME = ethers.encodeBytes32String("car");
+
+    beforeEach(async function () {
+      await portfolio.connect(admin).createEnvelope(NAME);
+    });
+
+    it("sets the envelope slot to address(0)", async function () {
+      await portfolio.connect(admin).deleteEnvelope(0);
+      expect(await portfolio.envelopes(0)).to.equal(ethers.ZeroAddress);
+    });
+
+    it("emits EnvelopeDeleted", async function () {
+      await expect(portfolio.connect(admin).deleteEnvelope(0))
+        .to.emit(portfolio, "EnvelopeDeleted")
+        .withArgs(0n);
+    });
+
+    it("reverts when envelope still holds funds", async function () {
+      const AMOUNT = 100n * 10n ** 6n;
+      await token.mint(admin.address, AMOUNT);
+      await token.connect(admin).approve(await portfolio.getAddress(), AMOUNT);
+      await portfolio.connect(admin).deposit(AMOUNT);
+      await portfolio.connect(admin).allocate(0, AMOUNT);
+      await expect(
+        portfolio.connect(admin).deleteEnvelope(0)
+      ).to.be.revertedWithCustomError(portfolio, "EnvelopeNotEmpty");
+    });
+
+    it("reverts when called by non-admin", async function () {
+      await expect(
+        portfolio.connect(otherAccount).deleteEnvelope(0)
+      ).to.be.revertedWithCustomError(portfolio, "OnlyAdmin");
+    });
+
+    it("reverts for out-of-bounds index", async function () {
+      await expect(
+        portfolio.connect(admin).deleteEnvelope(99)
+      ).to.be.revertedWithCustomError(portfolio, "EnvelopeNotFound");
+    });
+
+    it("reverts for already-deleted slot", async function () {
+      await portfolio.connect(admin).deleteEnvelope(0);
+      await expect(
+        portfolio.connect(admin).deleteEnvelope(0)
+      ).to.be.revertedWithCustomError(portfolio, "EnvelopeNotFound");
+    });
+  });
+
+  describe("allocate()", function () {
+    const AMOUNT = 500n * 10n ** 6n;
+    const NAME = ethers.encodeBytes32String("savings");
+
+    beforeEach(async function () {
+      await portfolio.connect(admin).createEnvelope(NAME);
+      await token.mint(admin.address, AMOUNT);
+      await token.connect(admin).approve(await portfolio.getAddress(), AMOUNT);
+      await portfolio.connect(admin).deposit(AMOUNT);
+    });
+
+    it("reduces unallocated() balance", async function () {
+      await portfolio.connect(admin).allocate(0, AMOUNT);
+      expect(await portfolio.unallocated()).to.equal(0n);
+    });
+
+    it("increases the envelope token balance", async function () {
+      await portfolio.connect(admin).allocate(0, AMOUNT);
+      const envelopeAddress = await portfolio.envelopes(0);
+      const Envelope = await ethers.getContractFactory("Envelope");
+      const envelope = Envelope.attach(envelopeAddress);
+      expect(await envelope.balance()).to.equal(AMOUNT);
+    });
+
+    it("emits Allocated", async function () {
+      await expect(portfolio.connect(admin).allocate(0, AMOUNT))
+        .to.emit(portfolio, "Allocated")
+        .withArgs(0n, AMOUNT);
+    });
+
+    it("allows partial allocation", async function () {
+      const half = AMOUNT / 2n;
+      await portfolio.connect(admin).allocate(0, half);
+      expect(await portfolio.unallocated()).to.equal(AMOUNT - half);
+      const envelopeAddress = await portfolio.envelopes(0);
+      const Envelope = await ethers.getContractFactory("Envelope");
+      const envelope = Envelope.attach(envelopeAddress);
+      expect(await envelope.balance()).to.equal(half);
+    });
+
+    it("reverts when amount exceeds unallocated balance", async function () {
+      await expect(
+        portfolio.connect(admin).allocate(0, AMOUNT + 1n)
+      ).to.be.revertedWithCustomError(portfolio, "InsufficientUnallocated");
+    });
+
+    it("reverts when called by a non-manager", async function () {
+      const [, , stranger] = await ethers.getSigners();
+      await expect(
+        portfolio.connect(stranger).allocate(0, AMOUNT)
+      ).to.be.revertedWithCustomError(portfolio, "OnlyManager");
+    });
+
+    it("succeeds when called by a granted manager", async function () {
+      await portfolio.connect(admin).addManager(otherAccount.address);
+      await expect(portfolio.connect(otherAccount).allocate(0, AMOUNT)).to.not.be.reverted;
+    });
+
+    it("reverts for out-of-bounds envelope index", async function () {
+      await expect(
+        portfolio.connect(admin).allocate(99, AMOUNT)
+      ).to.be.revertedWithCustomError(portfolio, "EnvelopeNotFound");
+    });
+
+    it("reverts for deleted envelope", async function () {
+      await portfolio.connect(admin).deleteEnvelope(0);
+      await expect(
+        portfolio.connect(admin).allocate(0, AMOUNT)
+      ).to.be.revertedWithCustomError(portfolio, "EnvelopeNotFound");
     });
   });
 });

@@ -2,6 +2,8 @@
 pragma solidity 0.8.34;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "./Envelope.sol";
 
 /**
  * @title Portfolio
@@ -12,6 +14,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  * contracts are dumb vaults with no independent authorization.
  */
 contract Portfolio {
+    using SafeERC20 for IERC20;
+
     /// @notice The ERC-20 token used across this portfolio (e.g. USDC).
     address public immutable token;
 
@@ -24,18 +28,41 @@ contract Portfolio {
     /// @notice The only external address to which funds may be withdrawn.
     address public withdrawalAddress;
 
+    /// @notice Addresses granted the manager role. Admins are implicitly managers.
+    mapping(address => bool) public managers;
+
+    /// @notice Deployed envelope contracts. Index is the envelope ID; address(0) means deleted.
+    address[] public envelopes;
+
     error OnlyAdmin();
     error OnlyPendingAdmin();
+    error OnlyManager();
     error ZeroAddress();
     error InvalidToken();
+    error ETHNotAccepted();
+    error InsufficientUnallocated();
+    error EnvelopeNotFound();
+    error EnvelopeNotEmpty();
 
+    event Deposited(address indexed from, uint256 amount);
+    event UnallocatedWithdrawn(uint256 amount);
     event WithdrawalAddressSet(address indexed newWithdrawalAddress);
     event AdminTransferProposed(address indexed currentAdmin, address indexed proposedAdmin);
     event AdminTransferCancelled(address indexed admin, address indexed cancelledPendingAdmin);
     event AdminTransferred(address indexed previousAdmin, address indexed newAdmin);
+    event ManagerAdded(address indexed manager);
+    event ManagerRemoved(address indexed manager);
+    event EnvelopeCreated(uint256 indexed index, address envelope, bytes32 name);
+    event EnvelopeDeleted(uint256 indexed index);
+    event Allocated(uint256 indexed index, uint256 amount);
 
     modifier onlyAdmin() {
         if (msg.sender != admin) revert OnlyAdmin();
+        _;
+    }
+
+    modifier onlyManager() {
+        if (msg.sender != admin && !managers[msg.sender]) revert OnlyManager();
         _;
     }
 
@@ -96,5 +123,103 @@ contract Portfolio {
         if (newWithdrawalAddress == address(0)) revert ZeroAddress();
         withdrawalAddress = newWithdrawalAddress;
         emit WithdrawalAddressSet(newWithdrawalAddress);
+    }
+
+    /**
+     * @notice Grant the manager role to an address.
+     * @dev Admin only. Reverts on zero address.
+     * @param manager The address to grant the manager role.
+     */
+    function addManager(address manager) external onlyAdmin {
+        if (manager == address(0)) revert ZeroAddress();
+        managers[manager] = true;
+        emit ManagerAdded(manager);
+    }
+
+    /**
+     * @notice Revoke the manager role from an address.
+     * @dev Admin only.
+     * @param manager The address to revoke the manager role from.
+     */
+    function removeManager(address manager) external onlyAdmin {
+        managers[manager] = false;
+        emit ManagerRemoved(manager);
+    }
+
+    /**
+     * @notice Deposit tokens into the portfolio. Deposited funds become unallocated.
+     * @dev Any caller. Requires prior approval of at least `amount` on the token contract.
+     * @param amount The number of tokens to deposit.
+     */
+    function deposit(uint256 amount) external {
+        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+        emit Deposited(msg.sender, amount);
+    }
+
+    /**
+     * @notice Returns the unallocated token balance — funds held by this contract not yet routed to an envelope.
+     */
+    function unallocated() public view returns (uint256) {
+        return IERC20(token).balanceOf(address(this));
+    }
+
+    /**
+     * @notice Withdraw unallocated funds to the withdrawal address.
+     * @dev Admin only. Reverts if `amount` exceeds the unallocated balance.
+     * @param amount The number of tokens to withdraw.
+     */
+    function withdrawUnallocated(uint256 amount) external onlyAdmin {
+        if (amount > unallocated()) revert InsufficientUnallocated();
+        IERC20(token).safeTransfer(withdrawalAddress, amount);
+        emit UnallocatedWithdrawn(amount);
+    }
+
+    /**
+     * @notice Deploy a new Envelope contract and register it in this portfolio.
+     * @dev Manager only. Returns the index of the new envelope.
+     * @param name A bytes32 identifier for the envelope (e.g. keccak256("mortgage")).
+     */
+    function createEnvelope(bytes32 name) external onlyManager returns (uint256 index) {
+        Envelope envelope = new Envelope(address(this), IERC20(token), name);
+        index = envelopes.length;
+        envelopes.push(address(envelope));
+        emit EnvelopeCreated(index, address(envelope), name);
+    }
+
+    /**
+     * @notice Delete an envelope slot. The envelope must have a zero balance.
+     * @dev Admin only. Sets the slot to address(0); index is not reused.
+     * @param index The index of the envelope to delete.
+     */
+    function deleteEnvelope(uint256 index) external onlyAdmin {
+        Envelope envelope = _getEnvelope(index);
+        if (envelope.balance() > 0) revert EnvelopeNotEmpty();
+        envelopes[index] = address(0);
+        emit EnvelopeDeleted(index);
+    }
+
+    /**
+     * @notice Move unallocated funds into an envelope.
+     * @dev Manager only. Reverts if amount exceeds unallocated balance or envelope is invalid.
+     * @param index  The target envelope index.
+     * @param amount The number of tokens to allocate.
+     */
+    function allocate(uint256 index, uint256 amount) external onlyManager {
+        Envelope envelope = _getEnvelope(index);
+        if (amount > unallocated()) revert InsufficientUnallocated();
+        IERC20(token).safeTransfer(address(envelope), amount);
+        emit Allocated(index, amount);
+    }
+
+    /// @dev Reject ETH transfers — this contract is ERC-20 only.
+    // slither-disable-next-line locked-ether
+    receive() external payable {
+        revert ETHNotAccepted();
+    }
+
+    /// @dev Reverts with EnvelopeNotFound for out-of-bounds or deleted indices.
+    function _getEnvelope(uint256 index) internal view returns (Envelope) {
+        if (index >= envelopes.length || envelopes[index] == address(0)) revert EnvelopeNotFound();
+        return Envelope(envelopes[index]);
     }
 }
