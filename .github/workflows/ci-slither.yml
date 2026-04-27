@@ -22,11 +22,10 @@ jobs:
       - uses: crytic/slither-action@v0.4.2
         id: slither
         with:
-          target: 'contracts/contracts/'
+          target: 'contracts/'
           slither-args: >-
             --checklist
             --markdown-root ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}/
-            --solc-remaps @openzeppelin/=node_modules/@openzeppelin/
             --filter-paths node_modules
           sarif: results.sarif
           fail-on: high
