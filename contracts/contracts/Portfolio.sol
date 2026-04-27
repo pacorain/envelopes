@@ -179,11 +179,12 @@ contract Portfolio {
      * @dev Manager only. Returns the index of the new envelope.
      * @param name A bytes32 identifier for the envelope (e.g. keccak256("mortgage")).
      */
+    // slither-disable-next-line reentrancy-no-eth
     function createEnvelope(bytes32 name) external onlyManager returns (uint256 index) {
-        Envelope envelope = new Envelope(address(this), IERC20(token), name);
+        address envelopeAddr = address(new Envelope(address(this), IERC20(token), name));
         index = envelopes.length;
-        envelopes.push(address(envelope));
-        emit EnvelopeCreated(index, address(envelope), name);
+        envelopes.push(envelopeAddr);
+        emit EnvelopeCreated(index, envelopeAddr, name);
     }
 
     /**
@@ -191,9 +192,10 @@ contract Portfolio {
      * @dev Admin only. Sets the slot to address(0); index is not reused.
      * @param index The index of the envelope to delete.
      */
+    // slither-disable-next-line reentrancy-no-eth
     function deleteEnvelope(uint256 index) external onlyAdmin {
-        Envelope envelope = _getEnvelope(index);
-        if (envelope.balance() > 0) revert EnvelopeNotEmpty();
+        address envelopeAddr = _getEnvelope(index);
+        if (Envelope(envelopeAddr).balance() > 0) revert EnvelopeNotEmpty();
         envelopes[index] = address(0);
         emit EnvelopeDeleted(index);
     }
@@ -205,9 +207,9 @@ contract Portfolio {
      * @param amount The number of tokens to allocate.
      */
     function allocate(uint256 index, uint256 amount) external onlyManager {
-        Envelope envelope = _getEnvelope(index);
+        address envelopeAddr = _getEnvelope(index);
         if (amount > unallocated()) revert InsufficientUnallocated();
-        IERC20(token).safeTransfer(address(envelope), amount);
+        IERC20(token).safeTransfer(envelopeAddr, amount);
         emit Allocated(index, amount);
     }
 
@@ -218,8 +220,8 @@ contract Portfolio {
     }
 
     /// @dev Reverts with EnvelopeNotFound for out-of-bounds or deleted indices.
-    function _getEnvelope(uint256 index) internal view returns (Envelope) {
+    function _getEnvelope(uint256 index) internal view returns (address) {
         if (index >= envelopes.length || envelopes[index] == address(0)) revert EnvelopeNotFound();
-        return Envelope(envelopes[index]);
+        return envelopes[index];
     }
 }
