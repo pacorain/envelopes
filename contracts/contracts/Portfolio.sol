@@ -43,6 +43,7 @@ contract Portfolio {
     error InsufficientBalance();
     error EnvelopeNotFound();
     error EnvelopeNotEmpty();
+    error SameEnvelope();
 
     event Deposited(address indexed from, uint256 amount);
     event UnallocatedWithdrawn(uint256 amount);
@@ -55,6 +56,8 @@ contract Portfolio {
     event EnvelopeCreated(uint256 indexed index, address envelope, bytes32 name);
     event EnvelopeDeleted(uint256 indexed index);
     event Allocated(uint256 indexed index, uint256 amount);
+    event FundsMoved(uint256 indexed from, uint256 indexed to, uint256 amount);
+    event EnvelopeWithdrawn(uint256 indexed index, uint256 amount);
 
     modifier onlyAdmin() {
         if (msg.sender != admin) revert OnlyAdmin();
@@ -219,6 +222,33 @@ contract Portfolio {
         if (amount > unallocated()) revert InsufficientBalance();
         IERC20(token).safeTransfer(envelopeAddr, amount);
         emit Allocated(index, amount);
+    }
+
+    /**
+     * @notice Move funds from one envelope to another.
+     * @dev Manager only. Reverts if either index is invalid, or if `from == to`.
+     * @param from   Index of the source envelope.
+     * @param to     Index of the destination envelope.
+     * @param amount The number of tokens to move.
+     */
+    function moveFunds(uint256 from, uint256 to, uint256 amount) external onlyManager {
+        if (from == to) revert SameEnvelope();
+        address fromAddr = _getEnvelope(from);
+        address toAddr = _getEnvelope(to);
+        Envelope(fromAddr).sendFunds(toAddr, amount);
+        emit FundsMoved(from, to, amount);
+    }
+
+    /**
+     * @notice Withdraw funds from an envelope to the withdrawal address.
+     * @dev Manager only. Funds leave to `withdrawalAddress` only — never an arbitrary address.
+     * @param index  The index of the envelope to withdraw from.
+     * @param amount The number of tokens to withdraw.
+     */
+    function withdrawFromEnvelope(uint256 index, uint256 amount) external onlyManager {
+        address envelopeAddr = _getEnvelope(index);
+        Envelope(envelopeAddr).sendFunds(withdrawalAddress, amount);
+        emit EnvelopeWithdrawn(index, amount);
     }
 
     /// @dev Reject ETH transfers — this contract is ERC-20 only.

@@ -578,4 +578,150 @@ describe("Portfolio", function () {
       ).to.be.revertedWithCustomError(portfolio, "EnvelopeNotFound");
     });
   });
+
+  describe("moveFunds()", function () {
+    const AMOUNT = 300n * 10n ** 6n;
+    let envelopeA, envelopeB;
+
+    beforeEach(async function () {
+      await portfolio.connect(admin).createEnvelope(ethers.encodeBytes32String("groceries"));
+      await portfolio.connect(admin).createEnvelope(ethers.encodeBytes32String("savings"));
+      envelopeA = await ethers.getContractAt("Envelope", await portfolio.envelopes(0));
+      envelopeB = await ethers.getContractAt("Envelope", await portfolio.envelopes(1));
+
+      await token.mint(admin.address, AMOUNT);
+      await token.connect(admin).approve(await portfolio.getAddress(), AMOUNT);
+      await portfolio.connect(admin).deposit(AMOUNT);
+      await portfolio.connect(admin).allocate(0, AMOUNT);
+    });
+
+    it("moves balance from source envelope to destination", async function () {
+      await portfolio.connect(admin).moveFunds(0, 1, AMOUNT);
+      expect(await envelopeA.balance()).to.equal(0n);
+      expect(await envelopeB.balance()).to.equal(AMOUNT);
+    });
+
+    it("supports partial moves", async function () {
+      const half = AMOUNT / 2n;
+      await portfolio.connect(admin).moveFunds(0, 1, half);
+      expect(await envelopeA.balance()).to.equal(AMOUNT - half);
+      expect(await envelopeB.balance()).to.equal(half);
+    });
+
+    it("emits FundsMoved", async function () {
+      await expect(portfolio.connect(admin).moveFunds(0, 1, AMOUNT))
+        .to.emit(portfolio, "FundsMoved")
+        .withArgs(0n, 1n, AMOUNT);
+    });
+
+    it("reverts when from == to", async function () {
+      await expect(
+        portfolio.connect(admin).moveFunds(0, 0, AMOUNT)
+      ).to.be.revertedWithCustomError(portfolio, "SameEnvelope");
+    });
+
+    it("reverts for invalid source envelope", async function () {
+      await expect(
+        portfolio.connect(admin).moveFunds(99, 1, AMOUNT)
+      ).to.be.revertedWithCustomError(portfolio, "EnvelopeNotFound");
+    });
+
+    it("reverts for invalid destination envelope", async function () {
+      await expect(
+        portfolio.connect(admin).moveFunds(0, 99, AMOUNT)
+      ).to.be.revertedWithCustomError(portfolio, "EnvelopeNotFound");
+    });
+
+    it("reverts for deleted source envelope", async function () {
+      await portfolio.connect(admin).moveFunds(0, 1, AMOUNT);
+      await portfolio.connect(admin).deleteEnvelope(0);
+      await expect(
+        portfolio.connect(admin).moveFunds(0, 1, AMOUNT)
+      ).to.be.revertedWithCustomError(portfolio, "EnvelopeNotFound");
+    });
+
+    it("reverts when called by a non-manager", async function () {
+      const [, , stranger] = await ethers.getSigners();
+      await expect(
+        portfolio.connect(stranger).moveFunds(0, 1, AMOUNT)
+      ).to.be.revertedWithCustomError(portfolio, "OnlyManager");
+    });
+
+    it("succeeds when called by a granted manager", async function () {
+      await portfolio.connect(admin).addManager(otherAccount.address);
+      await expect(portfolio.connect(otherAccount).moveFunds(0, 1, AMOUNT)).to.not.be.reverted;
+    });
+  });
+
+  describe("withdrawFromEnvelope()", function () {
+    const AMOUNT = 400n * 10n ** 6n;
+
+    beforeEach(async function () {
+      await portfolio.connect(admin).createEnvelope(ethers.encodeBytes32String("rent"));
+      await token.mint(admin.address, AMOUNT);
+      await token.connect(admin).approve(await portfolio.getAddress(), AMOUNT);
+      await portfolio.connect(admin).deposit(AMOUNT);
+      await portfolio.connect(admin).allocate(0, AMOUNT);
+    });
+
+    it("sends funds to the withdrawal address", async function () {
+      const before = await token.balanceOf(withdrawalAddress);
+      await portfolio.connect(admin).withdrawFromEnvelope(0, AMOUNT);
+      expect(await token.balanceOf(withdrawalAddress)).to.equal(before + AMOUNT);
+    });
+
+    it("reduces the envelope balance", async function () {
+      const envelopeAddr = await portfolio.envelopes(0);
+      const envelope = await ethers.getContractAt("Envelope", envelopeAddr);
+      await portfolio.connect(admin).withdrawFromEnvelope(0, AMOUNT);
+      expect(await envelope.balance()).to.equal(0n);
+    });
+
+    it("emits EnvelopeWithdrawn", async function () {
+      await expect(portfolio.connect(admin).withdrawFromEnvelope(0, AMOUNT))
+        .to.emit(portfolio, "EnvelopeWithdrawn")
+        .withArgs(0n, AMOUNT);
+    });
+
+    it("funds land at withdrawalAddress, not an arbitrary address", async function () {
+      const [, , thirdAccount] = await ethers.getSigners();
+      const before = await token.balanceOf(thirdAccount.address);
+      await portfolio.connect(admin).withdrawFromEnvelope(0, AMOUNT);
+      expect(await token.balanceOf(thirdAccount.address)).to.equal(before);
+    });
+
+    it("reverts for invalid envelope index", async function () {
+      await expect(
+        portfolio.connect(admin).withdrawFromEnvelope(99, AMOUNT)
+      ).to.be.revertedWithCustomError(portfolio, "EnvelopeNotFound");
+    });
+
+    it("reverts for deleted envelope", async function () {
+      await portfolio.connect(admin).withdrawFromEnvelope(0, AMOUNT);
+      await portfolio.connect(admin).deleteEnvelope(0);
+      await expect(
+        portfolio.connect(admin).withdrawFromEnvelope(0, AMOUNT)
+      ).to.be.revertedWithCustomError(portfolio, "EnvelopeNotFound");
+    });
+
+    it("reverts when called by a non-manager", async function () {
+      const [, , stranger] = await ethers.getSigners();
+      await expect(
+        portfolio.connect(stranger).withdrawFromEnvelope(0, AMOUNT)
+      ).to.be.revertedWithCustomError(portfolio, "OnlyManager");
+    });
+
+    it("succeeds when called by a granted manager", async function () {
+      await portfolio.connect(admin).addManager(otherAccount.address);
+      await expect(
+        portfolio.connect(otherAccount).withdrawFromEnvelope(0, AMOUNT)
+      ).to.not.be.reverted;
+    });
+
+    it("reverts when envelope has insufficient balance", async function () {
+      await expect(
+        portfolio.connect(admin).withdrawFromEnvelope(0, AMOUNT + 1n)
+      ).to.be.reverted;
+    });
+  });
 });
