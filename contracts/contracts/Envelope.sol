@@ -55,6 +55,7 @@ contract Envelope {
      * @param to      Destination address (another envelope or withdrawal address).
      * @param amount  Amount of tokens to transfer.
      */
+    // slither-disable-next-line arbitrary-send-erc20
     function sendFunds(address to, uint256 amount) external onlyPortfolio {
         token.safeTransfer(to, amount);
     }

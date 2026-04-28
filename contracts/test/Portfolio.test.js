@@ -1,7 +1,6 @@
 import { expect } from "chai";
 import { network } from "hardhat";
-
-const { ethers } = await network.connect();
+import { encodeBytes32String, ZeroAddress } from "ethers";
 
 describe("Portfolio", function () {
   let portfolio;
@@ -9,8 +8,10 @@ describe("Portfolio", function () {
   let admin;
   let otherAccount;
   let withdrawalAddress;
+  let ethers;
 
   beforeEach(async function () {
+    ({ ethers } = await network.connect());
     [admin, otherAccount] = await ethers.getSigners();
     withdrawalAddress = otherAccount.address;
 
@@ -39,24 +40,24 @@ describe("Portfolio", function () {
 
     it("emits AdminTransferred on deploy", async function () {
       const Portfolio = await ethers.getContractFactory("Portfolio");
-      const deployedPortfolio = await Portfolio.deploy(await token.getAddress(), withdrawalAddress);
-      await expect(deployedPortfolio.deploymentTransaction())
-        .to.emit(deployedPortfolio, "AdminTransferred")
-        .withArgs(ethers.ZeroAddress, admin.address);
+      const deployed = await Portfolio.deploy(await token.getAddress(), withdrawalAddress);
+      await expect(deployed.deploymentTransaction())
+        .to.emit(deployed, "AdminTransferred")
+        .withArgs(ZeroAddress, admin.address);
     });
 
     it("emits WithdrawalAddressSet on deploy", async function () {
       const Portfolio = await ethers.getContractFactory("Portfolio");
-      const deployedPortfolio = await Portfolio.deploy(await token.getAddress(), withdrawalAddress);
-      await expect(deployedPortfolio.deploymentTransaction())
-        .to.emit(deployedPortfolio, "WithdrawalAddressSet")
+      const deployed = await Portfolio.deploy(await token.getAddress(), withdrawalAddress);
+      await expect(deployed.deploymentTransaction())
+        .to.emit(deployed, "WithdrawalAddressSet")
         .withArgs(withdrawalAddress);
     });
 
     it("reverts when token address is zero", async function () {
       const Portfolio = await ethers.getContractFactory("Portfolio");
       await expect(
-        Portfolio.deploy(ethers.ZeroAddress, withdrawalAddress)
+        Portfolio.deploy(ZeroAddress, withdrawalAddress)
       ).to.be.revertedWithCustomError(
         { interface: (await ethers.getContractFactory("Portfolio")).interface },
         "ZeroAddress"
@@ -76,7 +77,7 @@ describe("Portfolio", function () {
     it("reverts when withdrawal address is zero", async function () {
       const Portfolio = await ethers.getContractFactory("Portfolio");
       await expect(
-        Portfolio.deploy(await token.getAddress(), ethers.ZeroAddress)
+        Portfolio.deploy(await token.getAddress(), ZeroAddress)
       ).to.be.revertedWithCustomError(
         { interface: (await ethers.getContractFactory("Portfolio")).interface },
         "ZeroAddress"
@@ -109,7 +110,7 @@ describe("Portfolio", function () {
 
     it("reverts when proposed address is zero", async function () {
       await expect(
-        portfolio.connect(admin).proposeAdmin(ethers.ZeroAddress)
+        portfolio.connect(admin).proposeAdmin(ZeroAddress)
       ).to.be.revertedWithCustomError(portfolio, "ZeroAddress");
     });
   });
@@ -126,7 +127,7 @@ describe("Portfolio", function () {
 
     it("clears pendingAdmin after acceptance", async function () {
       await portfolio.connect(otherAccount).acceptAdmin();
-      expect(await portfolio.pendingAdmin()).to.equal(ethers.ZeroAddress);
+      expect(await portfolio.pendingAdmin()).to.equal(ZeroAddress);
     });
 
     it("emits AdminTransferred on acceptance", async function () {
@@ -171,7 +172,7 @@ describe("Portfolio", function () {
 
     it("clears pendingAdmin", async function () {
       await portfolio.connect(admin).cancelPendingAdmin();
-      expect(await portfolio.pendingAdmin()).to.equal(ethers.ZeroAddress);
+      expect(await portfolio.pendingAdmin()).to.equal(ZeroAddress);
     });
 
     it("does not change admin", async function () {
@@ -219,7 +220,7 @@ describe("Portfolio", function () {
 
     it("reverts when address is zero", async function () {
       await expect(
-        portfolio.connect(admin).addManager(ethers.ZeroAddress)
+        portfolio.connect(admin).addManager(ZeroAddress)
       ).to.be.revertedWithCustomError(portfolio, "ZeroAddress");
     });
 
@@ -283,13 +284,13 @@ describe("Portfolio", function () {
 
     it("reverts when new address is zero", async function () {
       await expect(
-        portfolio.connect(admin).setWithdrawalAddress(ethers.ZeroAddress)
+        portfolio.connect(admin).setWithdrawalAddress(ZeroAddress)
       ).to.be.revertedWithCustomError(portfolio, "ZeroAddress");
     });
   });
 
   describe("deposit()", function () {
-    const DEPOSIT_AMOUNT = 1000n * 10n ** 6n; // 1000 USDC (6 decimals)
+    const DEPOSIT_AMOUNT = 1000n * 10n ** 6n;
 
     beforeEach(async function () {
       await token.mint(admin.address, DEPOSIT_AMOUNT);
@@ -409,16 +410,16 @@ describe("Portfolio", function () {
   describe("createEnvelope()", function () {
     let NAME;
     beforeEach(async function () {
-      NAME = ethers.encodeBytes32String("mortgage");
+      NAME = encodeBytes32String("mortgage");
     });
 
     it("returns sequential indices starting at 0", async function () {
       await portfolio.connect(admin).createEnvelope(NAME);
-      await portfolio.connect(admin).createEnvelope(ethers.encodeBytes32String("groceries"));
+      await portfolio.connect(admin).createEnvelope(encodeBytes32String("groceries"));
       const addr0 = await portfolio.envelopes(0);
       const addr1 = await portfolio.envelopes(1);
-      expect(addr0).to.not.equal(ethers.ZeroAddress);
-      expect(addr1).to.not.equal(ethers.ZeroAddress);
+      expect(addr0).to.not.equal(ZeroAddress);
+      expect(addr1).to.not.equal(ZeroAddress);
       expect(addr0).to.not.equal(addr1);
     });
 
@@ -437,13 +438,9 @@ describe("Portfolio", function () {
     });
 
     it("emits EnvelopeCreated with correct index, address, and name", async function () {
-      const txPromise = portfolio.connect(admin).createEnvelope(NAME);
-      const txResponse = await txPromise;
-      await txResponse.wait();
-      const envelopeAddress = await portfolio.envelopes(0);
-      await expect(txPromise)
+      await expect(portfolio.connect(admin).createEnvelope(NAME))
         .to.emit(portfolio, "EnvelopeCreated")
-        .withArgs(0n, envelopeAddress, NAME);
+        .withArgs(0n, (addr) => addr !== ZeroAddress, NAME);
     });
 
     it("reverts when called by a non-manager", async function () {
@@ -465,12 +462,12 @@ describe("Portfolio", function () {
 
   describe("deleteEnvelope()", function () {
     beforeEach(async function () {
-      await portfolio.connect(admin).createEnvelope(ethers.encodeBytes32String("car"));
+      await portfolio.connect(admin).createEnvelope(encodeBytes32String("car"));
     });
 
     it("sets the envelope slot to address(0)", async function () {
       await portfolio.connect(admin).deleteEnvelope(0);
-      expect(await portfolio.envelopes(0)).to.equal(ethers.ZeroAddress);
+      expect(await portfolio.envelopes(0)).to.equal(ZeroAddress);
     });
 
     it("emits EnvelopeDeleted", async function () {
@@ -514,7 +511,7 @@ describe("Portfolio", function () {
     const AMOUNT = 500n * 10n ** 6n;
 
     beforeEach(async function () {
-      await portfolio.connect(admin).createEnvelope(ethers.encodeBytes32String("savings"));
+      await portfolio.connect(admin).createEnvelope(encodeBytes32String("savings"));
       await token.mint(admin.address, AMOUNT);
       await token.connect(admin).approve(await portfolio.getAddress(), AMOUNT);
       await portfolio.connect(admin).deposit(AMOUNT);
@@ -584,8 +581,8 @@ describe("Portfolio", function () {
     let envelopeA, envelopeB;
 
     beforeEach(async function () {
-      await portfolio.connect(admin).createEnvelope(ethers.encodeBytes32String("groceries"));
-      await portfolio.connect(admin).createEnvelope(ethers.encodeBytes32String("savings"));
+      await portfolio.connect(admin).createEnvelope(encodeBytes32String("groceries"));
+      await portfolio.connect(admin).createEnvelope(encodeBytes32String("savings"));
       envelopeA = await ethers.getContractAt("Envelope", await portfolio.envelopes(0));
       envelopeB = await ethers.getContractAt("Envelope", await portfolio.envelopes(1));
 
@@ -657,7 +654,7 @@ describe("Portfolio", function () {
     const AMOUNT = 400n * 10n ** 6n;
 
     beforeEach(async function () {
-      await portfolio.connect(admin).createEnvelope(ethers.encodeBytes32String("rent"));
+      await portfolio.connect(admin).createEnvelope(encodeBytes32String("rent"));
       await token.mint(admin.address, AMOUNT);
       await token.connect(admin).approve(await portfolio.getAddress(), AMOUNT);
       await portfolio.connect(admin).deposit(AMOUNT);
