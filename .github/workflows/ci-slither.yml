@@ -25,6 +25,7 @@ jobs:
           node-version: '22'
           cache: 'npm'
       - run: npm install --workspace=contracts
+      - run: echo "$GITHUB_WORKSPACE/node_modules/.bin" >> $GITHUB_PATH
       - uses: crytic/slither-action@v0.4.2
         id: slither
         with:
