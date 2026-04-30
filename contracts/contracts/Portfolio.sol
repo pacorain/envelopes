@@ -58,6 +58,7 @@ contract Portfolio {
     event Allocated(uint256 indexed index, uint256 amount);
     event FundsMoved(uint256 indexed from, uint256 indexed to, uint256 amount);
     event EnvelopeWithdrawn(uint256 indexed index, uint256 amount);
+    event TokenRescued(uint256 indexed index, address indexed rescueToken, uint256 amount);
 
     modifier onlyAdmin() {
         if (msg.sender != admin) revert OnlyAdmin();
@@ -235,7 +236,7 @@ contract Portfolio {
         if (from == to) revert SameEnvelope();
         address fromAddr = _getEnvelope(from);
         address toAddr = _getEnvelope(to);
-        Envelope(fromAddr).sendFunds(toAddr, amount);
+        Envelope(payable(fromAddr)).sendFunds(toAddr, amount);
         emit FundsMoved(from, to, amount);
     }
 
@@ -247,8 +248,22 @@ contract Portfolio {
      */
     function withdrawFromEnvelope(uint256 index, uint256 amount) external onlyManager {
         address envelopeAddr = _getEnvelope(index);
-        Envelope(envelopeAddr).sendFunds(withdrawalAddress, amount);
+        Envelope(payable(envelopeAddr)).sendFunds(withdrawalAddress, amount);
         emit EnvelopeWithdrawn(index, amount);
+    }
+
+    /**
+     * @notice Recover a stray ERC-20 token accidentally sent to an envelope.
+     * @dev Admin only. Funds go to `withdrawalAddress` only — never an arbitrary address.
+     *      Cannot rescue the portfolio's primary token; use withdrawFromEnvelope() for that.
+     * @param index       The index of the envelope holding the stray token.
+     * @param rescueToken_ The ERC-20 token to recover (must not be the primary token).
+     * @param amount      Amount to transfer.
+     */
+    function rescueTokenFromEnvelope(uint256 index, address rescueToken_, uint256 amount) external onlyAdmin {
+        address envelopeAddr = _getEnvelope(index);
+        Envelope(payable(envelopeAddr)).rescueToken(IERC20(rescueToken_), withdrawalAddress, amount);
+        emit TokenRescued(index, rescueToken_, amount);
     }
 
     /// @dev Reject ETH transfers — this contract is ERC-20 only.

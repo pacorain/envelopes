@@ -646,7 +646,7 @@ describe("Portfolio", function () {
 
     it("succeeds when called by a granted manager", async function () {
       await portfolio.connect(admin).addManager(otherAccount.address);
-      await expect(portfolio.connect(otherAccount).moveFunds(0, 1, AMOUNT)).to.not.be.reverted;
+      await expect(portfolio.connect(otherAccount).moveFunds(0, 1, AMOUNT)).to.not.revert(ethers);
     });
   });
 
@@ -712,13 +712,68 @@ describe("Portfolio", function () {
       await portfolio.connect(admin).addManager(otherAccount.address);
       await expect(
         portfolio.connect(otherAccount).withdrawFromEnvelope(0, AMOUNT)
-      ).to.not.be.reverted;
+      ).to.not.revert(ethers);
     });
 
     it("reverts when envelope has insufficient balance", async function () {
       await expect(
         portfolio.connect(admin).withdrawFromEnvelope(0, AMOUNT + 1n)
-      ).to.be.reverted;
+      ).to.revert(ethers);
+    });
+  });
+
+  describe("rescueTokenFromEnvelope()", function () {
+    const AMOUNT = 200n * 10n ** 18n;
+    let strayToken;
+
+    beforeEach(async function () {
+      await portfolio.connect(admin).createEnvelope(encodeBytes32String("savings"));
+      const MockERC20 = await ethers.getContractFactory("MockERC20");
+      strayToken = await MockERC20.deploy("Stray Token", "STR", 18);
+      await strayToken.mint(await portfolio.envelopes(0), AMOUNT);
+    });
+
+    it("transfers the stray token to the withdrawal address", async function () {
+      const before = await strayToken.balanceOf(withdrawalAddress);
+      await portfolio.connect(admin).rescueTokenFromEnvelope(0, await strayToken.getAddress(), AMOUNT);
+      expect(await strayToken.balanceOf(withdrawalAddress)).to.equal(before + AMOUNT);
+    });
+
+    it("emits TokenRescued", async function () {
+      await expect(
+        portfolio.connect(admin).rescueTokenFromEnvelope(0, await strayToken.getAddress(), AMOUNT)
+      )
+        .to.emit(portfolio, "TokenRescued")
+        .withArgs(0n, await strayToken.getAddress(), AMOUNT);
+    });
+
+    it("reverts when trying to rescue the primary token", async function () {
+      await token.mint(await portfolio.envelopes(0), AMOUNT);
+      await expect(
+        portfolio.connect(admin).rescueTokenFromEnvelope(0, await token.getAddress(), AMOUNT)
+      ).to.be.revertedWithCustomError(
+        { interface: (await ethers.getContractFactory("Envelope")).interface },
+        "CannotRescuePrimaryToken"
+      );
+    });
+
+    it("reverts for invalid envelope index", async function () {
+      await expect(
+        portfolio.connect(admin).rescueTokenFromEnvelope(99, await strayToken.getAddress(), AMOUNT)
+      ).to.be.revertedWithCustomError(portfolio, "EnvelopeNotFound");
+    });
+
+    it("reverts when called by a non-admin", async function () {
+      await expect(
+        portfolio.connect(otherAccount).rescueTokenFromEnvelope(0, await strayToken.getAddress(), AMOUNT)
+      ).to.be.revertedWithCustomError(portfolio, "OnlyAdmin");
+    });
+
+    it("funds land at withdrawalAddress, not an arbitrary address", async function () {
+      const [, , thirdAccount] = await ethers.getSigners();
+      const before = await strayToken.balanceOf(thirdAccount.address);
+      await portfolio.connect(admin).rescueTokenFromEnvelope(0, await strayToken.getAddress(), AMOUNT);
+      expect(await strayToken.balanceOf(thirdAccount.address)).to.equal(before);
     });
   });
 });

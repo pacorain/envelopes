@@ -15,5 +15,10 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-      - run: npm install
+      - run: npm ci
+      - name: Cache Hardhat compiler
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/hardhat-nodejs
+          key: hardhat-compiler-${{ hashFiles('contracts/hardhat.config.js') }}
       - run: npm run test -w contracts
