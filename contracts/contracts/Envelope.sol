@@ -31,6 +31,7 @@ contract Envelope {
     error CannotRescuePrimaryToken();
 
     /// @notice Reject any ETH sent directly to this contract.
+    // slither-disable-next-line locked-ether
     receive() external payable {
         revert ETHNotAccepted();
     }
@@ -54,6 +55,7 @@ contract Envelope {
      * @param to      Destination address (another envelope or withdrawal address).
      * @param amount  Amount of tokens to transfer.
      */
+    // slither-disable-next-line arbitrary-send-erc20
     function sendFunds(address to, uint256 amount) external onlyPortfolio {
         token.safeTransfer(to, amount);
     }
@@ -66,6 +68,7 @@ contract Envelope {
      * @param to            Destination address.
      * @param amount        Amount to transfer.
      */
+    // slither-disable-next-line arbitrary-send-erc20
     function rescueToken(IERC20 rescueToken_, address to, uint256 amount) external onlyPortfolio {
         if (rescueToken_ == token) revert CannotRescuePrimaryToken();
         rescueToken_.safeTransfer(to, amount);

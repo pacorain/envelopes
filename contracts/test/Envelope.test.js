@@ -1,7 +1,8 @@
 import { expect } from "chai";
-import { ethers } from "hardhat";
+import { network } from "hardhat";
 
 describe("Envelope", function () {
+  let ethers;
   let envelope;
   let token;
   let otherToken;
@@ -9,6 +10,7 @@ describe("Envelope", function () {
   let otherAccount;
 
   beforeEach(async function () {
+    ({ ethers } = await network.connect());
     [portfolio, otherAccount] = await ethers.getSigners();
 
     const MockERC20 = await ethers.getContractFactory("MockERC20");
