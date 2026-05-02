@@ -142,7 +142,7 @@ contract Portfolio {
 
     /**
      * @notice Revoke the manager role from an address.
-     * @dev Admin only.
+     * @dev Admin only. Emits ManagerRemoved even if the address was never a manager.
      * @param manager The address to revoke the manager role from.
      */
     function removeManager(address manager) external onlyAdmin {
@@ -153,6 +153,7 @@ contract Portfolio {
     /**
      * @notice Deposit tokens into the portfolio. Deposited funds become unallocated.
      * @dev Any caller. Requires prior approval of at least `amount` on the token contract.
+     *      Zero-amount deposits succeed (no-op transfer) and emit a Deposited event with amount 0.
      * @param amount The number of tokens to deposit.
      */
     function deposit(uint256 amount) external {
@@ -200,7 +201,7 @@ contract Portfolio {
     // slither-disable-next-line reentrancy-no-eth
     function deleteEnvelope(uint256 index) external onlyAdmin {
         address envelopeAddr = _getEnvelope(index);
-        if (Envelope(envelopeAddr).balance() > 0) revert EnvelopeNotEmpty();
+        if (Envelope(payable(envelopeAddr)).balance() > 0) revert EnvelopeNotEmpty();
         envelopes[index] = address(0);
         emit EnvelopeDeleted(index);
     }
@@ -229,7 +230,7 @@ contract Portfolio {
         if (from == to) revert SameEnvelope();
         address fromAddr = _getEnvelope(from);
         address toAddr = _getEnvelope(to);
-        Envelope(fromAddr).sendFunds(toAddr, amount);
+        Envelope(payable(fromAddr)).sendFunds(toAddr, amount);
         emit FundsMoved(from, to, amount);
     }
 
@@ -241,7 +242,7 @@ contract Portfolio {
      */
     function withdrawFromEnvelope(uint256 index, uint256 amount) external onlyManager {
         address envelopeAddr = _getEnvelope(index);
-        Envelope(envelopeAddr).sendFunds(withdrawalAddress, amount);
+        Envelope(payable(envelopeAddr)).sendFunds(withdrawalAddress, amount);
         emit EnvelopeWithdrawn(index, amount);
     }
 
@@ -254,8 +255,9 @@ contract Portfolio {
      * @param amount      Amount to transfer.
      */
     function rescueTokenFromEnvelope(uint256 index, address rescueToken_, uint256 amount) external onlyAdmin {
+        if (rescueToken_ == address(0)) revert ZeroAddress();
         address envelopeAddr = _getEnvelope(index);
-        Envelope(envelopeAddr).rescueToken(IERC20(rescueToken_), withdrawalAddress, amount);
+        Envelope(payable(envelopeAddr)).rescueToken(IERC20(rescueToken_), withdrawalAddress, amount);
         emit TokenRescued(index, rescueToken_, amount);
     }
 

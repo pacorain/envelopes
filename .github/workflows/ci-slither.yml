@@ -23,6 +23,7 @@ jobs:
         id: slither
         with:
           target: 'contracts/contracts/'
+          solc-version: '0.8.34'
           slither-args: >-
             --checklist
             --markdown-root ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}/

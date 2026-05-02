@@ -1,7 +1,8 @@
-import "@nomicfoundation/hardhat-toolbox-mocha-ethers";
+import HardhatToolboxMochaEthers from "@nomicfoundation/hardhat-toolbox-mocha-ethers";
 
 /** @type import('hardhat/config').HardhatUserConfig */
 const config = {
+  plugins: [HardhatToolboxMochaEthers],
   solidity: "0.8.34",
   networks: {
     base: {

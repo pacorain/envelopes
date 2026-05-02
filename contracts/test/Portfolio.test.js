@@ -304,13 +304,13 @@ describe("Portfolio", function () {
     it("can be called by any account, not just admin", async function () {
       await token.mint(otherAccount.address, DEPOSIT_AMOUNT);
       await token.connect(otherAccount).approve(await portfolio.getAddress(), DEPOSIT_AMOUNT);
-      await expect(portfolio.connect(otherAccount).deposit(DEPOSIT_AMOUNT)).to.not.be.reverted;
+      await expect(portfolio.connect(otherAccount).deposit(DEPOSIT_AMOUNT)).to.not.revert(ethers);
       expect(await portfolio.unallocated()).to.equal(DEPOSIT_AMOUNT);
     });
 
     it("reverts when caller has insufficient allowance", async function () {
       await token.connect(admin).approve(await portfolio.getAddress(), 0n);
-      await expect(portfolio.connect(admin).deposit(DEPOSIT_AMOUNT)).to.be.reverted;
+      await expect(portfolio.connect(admin).deposit(DEPOSIT_AMOUNT)).to.revert(ethers);
     });
   });
 
@@ -431,11 +431,11 @@ describe("Portfolio", function () {
 
     it("succeeds when called by a granted manager", async function () {
       await portfolio.connect(admin).addManager(otherAccount.address);
-      await expect(portfolio.connect(otherAccount).createEnvelope(NAME)).to.not.be.reverted;
+      await expect(portfolio.connect(otherAccount).createEnvelope(NAME)).to.not.revert(ethers);
     });
 
     it("admin can create envelopes (implicitly a manager)", async function () {
-      await expect(portfolio.connect(admin).createEnvelope(NAME)).to.not.be.reverted;
+      await expect(portfolio.connect(admin).createEnvelope(NAME)).to.not.revert(ethers);
     });
   });
 
@@ -538,7 +538,7 @@ describe("Portfolio", function () {
 
     it("succeeds when called by a granted manager", async function () {
       await portfolio.connect(admin).addManager(otherAccount.address);
-      await expect(portfolio.connect(otherAccount).allocate(0, AMOUNT)).to.not.be.reverted;
+      await expect(portfolio.connect(otherAccount).allocate(0, AMOUNT)).to.not.revert(ethers);
     });
 
     it("reverts for out-of-bounds envelope index", async function () {
@@ -625,7 +625,7 @@ describe("Portfolio", function () {
 
     it("succeeds when called by a granted manager", async function () {
       await portfolio.connect(admin).addManager(otherAccount.address);
-      await expect(portfolio.connect(otherAccount).moveFunds(0, 1, AMOUNT)).to.not.be.reverted;
+      await expect(portfolio.connect(otherAccount).moveFunds(0, 1, AMOUNT)).to.not.revert(ethers);
     });
   });
 
@@ -691,13 +691,13 @@ describe("Portfolio", function () {
       await portfolio.connect(admin).addManager(otherAccount.address);
       await expect(
         portfolio.connect(otherAccount).withdrawFromEnvelope(0, AMOUNT)
-      ).to.not.be.reverted;
+      ).to.not.revert(ethers);
     });
 
     it("reverts when envelope has insufficient balance", async function () {
       await expect(
         portfolio.connect(admin).withdrawFromEnvelope(0, AMOUNT + 1n)
-      ).to.be.reverted;
+      ).to.revert(ethers);
     });
   });
 
