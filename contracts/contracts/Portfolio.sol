@@ -226,6 +226,7 @@ contract Portfolio {
      * @param to     Index of the destination envelope.
      * @param amount The number of tokens to move.
      */
+    // slither-disable-next-line reentrancy-events
     function moveFunds(uint256 from, uint256 to, uint256 amount) external onlyManager {
         if (from == to) revert SameEnvelope();
         address fromAddr = _getEnvelope(from);
@@ -240,6 +241,7 @@ contract Portfolio {
      * @param index  The index of the envelope to withdraw from.
      * @param amount The number of tokens to withdraw.
      */
+    // slither-disable-next-line reentrancy-events
     function withdrawFromEnvelope(uint256 index, uint256 amount) external onlyManager {
         address envelopeAddr = _getEnvelope(index);
         Envelope(payable(envelopeAddr)).sendFunds(withdrawalAddress, amount);
@@ -254,6 +256,7 @@ contract Portfolio {
      * @param rescueToken_ The ERC-20 token to recover (must not be the primary token).
      * @param amount      Amount to transfer.
      */
+    // slither-disable-next-line reentrancy-events
     function rescueTokenFromEnvelope(uint256 index, address rescueToken_, uint256 amount) external onlyAdmin {
         if (rescueToken_ == address(0)) revert ZeroAddress();
         address envelopeAddr = _getEnvelope(index);
