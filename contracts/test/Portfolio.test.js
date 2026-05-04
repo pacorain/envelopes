@@ -253,6 +253,12 @@ describe("Portfolio", function () {
         portfolio.connect(otherAccount).removeManager(otherAccount.address)
       ).to.be.revertedWithCustomError(portfolio, "OnlyAdmin");
     });
+
+    it("reverts for zero address", async function () {
+      await expect(
+        portfolio.connect(admin).removeManager(ZeroAddress)
+      ).to.be.revertedWithCustomError(portfolio, "ZeroAddress");
+    });
   });
 
   describe("setWithdrawalAddress()", function () {

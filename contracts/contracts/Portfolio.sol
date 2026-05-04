@@ -150,10 +150,11 @@ contract Portfolio {
 
     /**
      * @notice Revoke the manager role from an address.
-     * @dev Admin only. Emits ManagerRemoved even if the address was never a manager.
+     * @dev Admin only. Reverts on zero address. Emits ManagerRemoved even if the address was not a manager.
      * @param manager The address to revoke the manager role from.
      */
     function removeManager(address manager) external onlyAdmin {
+        if (manager == address(0)) revert ZeroAddress();
         managers[manager] = false;
         emit ManagerRemoved(manager);
     }
