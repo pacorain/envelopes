@@ -43,6 +43,7 @@ contract Envelope {
 
     constructor(address portfolio_, IERC20 token_, bytes32 name_) {
         if (portfolio_ == address(0)) revert ZeroAddress();
+        if (address(token_) == address(0)) revert ZeroAddress();
         portfolio = portfolio_;
         token = token_;
         name = name_;

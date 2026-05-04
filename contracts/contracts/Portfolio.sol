@@ -96,11 +96,15 @@ contract Portfolio {
         emit AdminTransferProposed(admin, newAdmin);
     }
 
+    error NoPendingAdminProposal();
+
     /**
      * @notice Cancel a pending admin transfer proposal.
      * @dev Admin only. Clears pendingAdmin so the proposed address can no longer accept.
+     *      Reverts if there is no pending proposal.
      */
     function cancelPendingAdmin() external onlyAdmin {
+        if (pendingAdmin == address(0)) revert NoPendingAdminProposal();
         address cancelled = pendingAdmin;
         pendingAdmin = address(0);
         emit AdminTransferCancelled(admin, cancelled);
@@ -109,6 +113,10 @@ contract Portfolio {
     /**
      * @notice Accept a pending admin transfer. Must be called by the pending admin.
      * @dev Reverts if the caller is not the pending admin.
+     *      After accepting, the new admin should audit the managers mapping: any address
+     *      previously granted the manager role (including the old admin if they explicitly
+     *      called addManager on themselves) retains that role and must be removed via
+     *      removeManager() if no longer trusted.
      */
     function acceptAdmin() external {
         if (msg.sender != pendingAdmin) revert OnlyPendingAdmin();

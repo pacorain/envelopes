@@ -192,6 +192,13 @@ describe("Portfolio", function () {
       ).to.be.revertedWithCustomError(portfolio, "OnlyAdmin");
     });
 
+    it("reverts when there is no pending proposal", async function () {
+      await portfolio.connect(admin).cancelPendingAdmin();
+      await expect(
+        portfolio.connect(admin).cancelPendingAdmin()
+      ).to.be.revertedWithCustomError(portfolio, "NoPendingAdminProposal");
+    });
+
     it("acceptAdmin() reverts after cancelPendingAdmin() is called", async function () {
       await portfolio.connect(admin).cancelPendingAdmin();
       await expect(

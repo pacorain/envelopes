@@ -36,6 +36,17 @@ describe("Envelope", function () {
         )
       ).to.be.revertedWithCustomError({ interface: (await ethers.getContractFactory("Envelope")).interface }, "ZeroAddress");
     });
+
+    it("reverts when token address is zero", async function () {
+      const Envelope = await ethers.getContractFactory("Envelope");
+      await expect(
+        Envelope.deploy(
+          portfolio.address,
+          ethers.ZeroAddress,
+          ethers.encodeBytes32String("test")
+        )
+      ).to.be.revertedWithCustomError({ interface: (await ethers.getContractFactory("Envelope")).interface }, "ZeroAddress");
+    });
   });
 
   describe("state", function () {
