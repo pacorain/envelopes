@@ -44,6 +44,7 @@ contract Portfolio {
     error EnvelopeNotFound();
     error EnvelopeNotEmpty();
     error SameEnvelope();
+    error NoPendingAdminProposal();
 
     event Deposited(address indexed from, uint256 amount);
     event UnallocatedWithdrawn(uint256 amount);
@@ -95,8 +96,6 @@ contract Portfolio {
         pendingAdmin = newAdmin;
         emit AdminTransferProposed(admin, newAdmin);
     }
-
-    error NoPendingAdminProposal();
 
     /**
      * @notice Cancel a pending admin transfer proposal.
