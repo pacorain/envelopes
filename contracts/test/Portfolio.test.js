@@ -629,6 +629,15 @@ describe("Portfolio", function () {
       ).to.be.revertedWithCustomError(portfolio, "EnvelopeNotFound");
     });
 
+    it("reverts for deleted destination envelope", async function () {
+      // drain envelope 1 so it can be deleted, then attempt to move into it
+      await portfolio.connect(admin).createEnvelope(encodeBytes32String("temp"));
+      await portfolio.connect(admin).deleteEnvelope(2);
+      await expect(
+        portfolio.connect(admin).moveFunds(0, 2, AMOUNT)
+      ).to.be.revertedWithCustomError(portfolio, "EnvelopeNotFound");
+    });
+
     it("reverts when called by a non-manager", async function () {
       const [, , stranger] = await ethers.getSigners();
       await expect(
@@ -759,6 +768,12 @@ describe("Portfolio", function () {
       await expect(
         portfolio.connect(otherAccount).rescueTokenFromEnvelope(0, await strayToken.getAddress(), AMOUNT)
       ).to.be.revertedWithCustomError(portfolio, "OnlyAdmin");
+    });
+
+    it("reverts for zero-address token", async function () {
+      await expect(
+        portfolio.connect(admin).rescueTokenFromEnvelope(0, ZeroAddress, AMOUNT)
+      ).to.be.revertedWithCustomError(portfolio, "ZeroAddress");
     });
 
     it("funds land at withdrawalAddress, not an arbitrary address", async function () {
