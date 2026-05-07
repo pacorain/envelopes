@@ -259,6 +259,13 @@ describe("Portfolio", function () {
         portfolio.connect(admin).removeManager(ZeroAddress)
       ).to.be.revertedWithCustomError(portfolio, "ZeroAddress");
     });
+
+    it("reverts when address is not a manager", async function () {
+      const [, , nonManager] = await ethers.getSigners();
+      await expect(
+        portfolio.connect(admin).removeManager(nonManager.address)
+      ).to.be.revertedWithCustomError(portfolio, "NotAManager");
+    });
   });
 
   describe("setWithdrawalAddress()", function () {
@@ -688,6 +695,16 @@ describe("Portfolio", function () {
       expect(await token.balanceOf(thirdAccount.address)).to.equal(before);
     });
 
+    it("manager withdrawal also sends only to withdrawalAddress", async function () {
+      await portfolio.connect(admin).addManager(otherAccount.address);
+      const [, , thirdAccount] = await ethers.getSigners();
+      const beforeWithdrawal = await token.balanceOf(withdrawalAddress);
+      const beforeThird = await token.balanceOf(thirdAccount.address);
+      await portfolio.connect(otherAccount).withdrawFromEnvelope(0, AMOUNT);
+      expect(await token.balanceOf(withdrawalAddress)).to.equal(beforeWithdrawal + AMOUNT);
+      expect(await token.balanceOf(thirdAccount.address)).to.equal(beforeThird);
+    });
+
     it("reverts for invalid envelope index", async function () {
       await expect(
         portfolio.connect(admin).withdrawFromEnvelope(99, AMOUNT)
@@ -749,13 +766,9 @@ describe("Portfolio", function () {
     });
 
     it("reverts when trying to rescue the primary token", async function () {
-      await token.mint(await portfolio.envelopes(0), AMOUNT);
       await expect(
         portfolio.connect(admin).rescueTokenFromEnvelope(0, await token.getAddress(), AMOUNT)
-      ).to.be.revertedWithCustomError(
-        { interface: (await ethers.getContractFactory("Envelope")).interface },
-        "CannotRescuePrimaryToken"
-      );
+      ).to.be.revertedWithCustomError(portfolio, "CannotRescuePrimaryToken");
     });
 
     it("reverts for invalid envelope index", async function () {

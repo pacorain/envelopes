@@ -45,6 +45,8 @@ contract Portfolio {
     error EnvelopeNotEmpty();
     error SameEnvelope();
     error NoPendingAdminProposal();
+    error NotAManager();
+    error CannotRescuePrimaryToken();
 
     event Deposited(address indexed from, uint256 amount);
     event UnallocatedWithdrawn(uint256 amount);
@@ -149,11 +151,12 @@ contract Portfolio {
 
     /**
      * @notice Revoke the manager role from an address.
-     * @dev Admin only. Reverts on zero address. Emits ManagerRemoved even if the address was not a manager.
+     * @dev Admin only. Reverts on zero address or if the address is not currently a manager.
      * @param manager The address to revoke the manager role from.
      */
     function removeManager(address manager) external onlyAdmin {
         if (manager == address(0)) revert ZeroAddress();
+        if (!managers[manager]) revert NotAManager();
         managers[manager] = false;
         emit ManagerRemoved(manager);
     }
@@ -267,6 +270,7 @@ contract Portfolio {
     // slither-disable-next-line reentrancy-events
     function rescueTokenFromEnvelope(uint256 index, address rescueToken_, uint256 amount) external onlyAdmin {
         if (rescueToken_ == address(0)) revert ZeroAddress();
+        if (rescueToken_ == token) revert CannotRescuePrimaryToken();
         address envelopeAddr = _getEnvelope(index);
         Envelope(payable(envelopeAddr)).rescueToken(IERC20(rescueToken_), withdrawalAddress, amount);
         emit TokenRescued(index, rescueToken_, amount);
