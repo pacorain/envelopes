@@ -41,11 +41,13 @@ contract Portfolio {
     error InvalidToken();
     error ETHNotAccepted();
     error InsufficientUnallocated();
+    error InsufficientEnvelopeBalance();
     error EnvelopeNotFound();
     error EnvelopeNotEmpty();
     error SameEnvelope();
     error NoPendingAdminProposal();
     error NotAManager();
+    error AlreadyManager();
     error CannotRescuePrimaryToken();
 
     event Deposited(address indexed from, uint256 amount);
@@ -145,6 +147,7 @@ contract Portfolio {
      */
     function addManager(address manager) external onlyAdmin {
         if (manager == address(0)) revert ZeroAddress();
+        if (managers[manager]) revert AlreadyManager();
         managers[manager] = true;
         emit ManagerAdded(manager);
     }
@@ -242,6 +245,7 @@ contract Portfolio {
         if (from == to) revert SameEnvelope();
         address fromAddr = _getEnvelope(from);
         address toAddr = _getEnvelope(to);
+        if (amount > Envelope(payable(fromAddr)).balance()) revert InsufficientEnvelopeBalance();
         Envelope(payable(fromAddr)).sendFunds(toAddr, amount);
         emit FundsMoved(from, to, amount);
     }
@@ -255,6 +259,7 @@ contract Portfolio {
     // slither-disable-next-line reentrancy-events
     function withdrawFromEnvelope(uint256 index, uint256 amount) external onlyManager {
         address envelopeAddr = _getEnvelope(index);
+        if (amount > Envelope(payable(envelopeAddr)).balance()) revert InsufficientEnvelopeBalance();
         Envelope(payable(envelopeAddr)).sendFunds(withdrawalAddress, amount);
         emit EnvelopeWithdrawn(index, amount);
     }

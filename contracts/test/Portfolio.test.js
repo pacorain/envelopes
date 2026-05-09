@@ -230,6 +230,13 @@ describe("Portfolio", function () {
         portfolio.connect(admin).addManager(ZeroAddress)
       ).to.be.revertedWithCustomError(portfolio, "ZeroAddress");
     });
+
+    it("reverts when address is already a manager", async function () {
+      await portfolio.connect(admin).addManager(otherAccount.address);
+      await expect(
+        portfolio.connect(admin).addManager(otherAccount.address)
+      ).to.be.revertedWithCustomError(portfolio, "AlreadyManager");
+    });
   });
 
   describe("removeManager()", function () {
@@ -645,6 +652,12 @@ describe("Portfolio", function () {
       ).to.be.revertedWithCustomError(portfolio, "EnvelopeNotFound");
     });
 
+    it("reverts when envelope has insufficient balance", async function () {
+      await expect(
+        portfolio.connect(admin).moveFunds(0, 1, AMOUNT + 1n)
+      ).to.be.revertedWithCustomError(portfolio, "InsufficientEnvelopeBalance");
+    });
+
     it("reverts when called by a non-manager", async function () {
       const [, , stranger] = await ethers.getSigners();
       await expect(
@@ -736,7 +749,7 @@ describe("Portfolio", function () {
     it("reverts when envelope has insufficient balance", async function () {
       await expect(
         portfolio.connect(admin).withdrawFromEnvelope(0, AMOUNT + 1n)
-      ).to.revert(ethers);
+      ).to.be.revertedWithCustomError(portfolio, "InsufficientEnvelopeBalance");
     });
   });
 
