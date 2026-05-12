@@ -26,8 +26,10 @@ export const PortfolioABI = [
   'function deleteEnvelope(uint256 index)',
   'function rescueTokenFromEnvelope(uint256 index, address rescueToken_, uint256 amount)',
 
-  // Manager: funds
+  // Any caller: deposit
   'function deposit(uint256 amount)',
+
+  // Manager: funds
   'function createEnvelope(bytes32 name) returns (uint256)',
   'function allocate(uint256 index, uint256 amount)',
   'function moveFunds(uint256 from, uint256 to, uint256 amount)',

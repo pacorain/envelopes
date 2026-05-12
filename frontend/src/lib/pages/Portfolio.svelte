@@ -30,12 +30,10 @@
 
   async function deposit() {
     const amount = parseAmount(depositAmount);
-    // Ensure approval first
-    const tokenContract = new ethers.Contract(
-      portfolio.tokenAddress,
-      ERC20ABI,
-      wallet.signer,
-    );
+    // Use the token address from the contract, not localStorage, to prevent approving the wrong ERC-20
+    const tokenAddr = portfolio.token;
+    if (!tokenAddr) throw new Error('Portfolio token address not loaded');
+    const tokenContract = new ethers.Contract(tokenAddr, ERC20ABI, wallet.signer);
     const allowance = await tokenContract.allowance(wallet.account, portfolio.address);
     if (allowance < amount) {
       const approveTx = await tokenContract.approve(portfolio.address, amount);

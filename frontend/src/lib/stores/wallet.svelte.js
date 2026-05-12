@@ -1,10 +1,14 @@
 import { ethers } from 'ethers';
 
+// Base mainnet chain ID
+const BASE_CHAIN_ID = 8453n;
+
 class WalletState {
   provider = $state(null);
   signer = $state(null);
   account = $state(null);
   error = $state(null);
+  wrongNetwork = $state(false);
 
   get connected() {
     return this.account !== null;
@@ -12,6 +16,7 @@ class WalletState {
 
   async connect() {
     this.error = null;
+    this.wrongNetwork = false;
     if (!window.ethereum) {
       this.error = 'No wallet detected. Install MetaMask or a compatible browser wallet.';
       return;
@@ -19,6 +24,14 @@ class WalletState {
     try {
       const provider = new ethers.BrowserProvider(window.ethereum);
       await provider.send('eth_requestAccounts', []);
+
+      const { chainId } = await provider.getNetwork();
+      if (chainId !== BASE_CHAIN_ID) {
+        this.wrongNetwork = true;
+        this.error = `Wrong network. Please switch to Base (chain ID 8453). You are on chain ${chainId}.`;
+        return;
+      }
+
       const signer = await provider.getSigner();
       this.provider = provider;
       this.signer = signer;
@@ -33,13 +46,14 @@ class WalletState {
     this.signer = null;
     this.account = null;
     this.error = null;
+    this.wrongNetwork = false;
   }
 }
 
 export const wallet = new WalletState();
 
-// Keep wallet in sync when the user switches accounts in MetaMask
 if (typeof window !== 'undefined' && window.ethereum) {
+  // Keep wallet in sync when the user switches accounts
   window.ethereum.on('accountsChanged', async (accounts) => {
     if (accounts.length === 0) {
       wallet.disconnect();
@@ -49,5 +63,10 @@ if (typeof window !== 'undefined' && window.ethereum) {
       wallet.provider = provider;
       wallet.signer = await provider.getSigner();
     }
+  });
+
+  // Reload on network change so all state is re-fetched for the new chain
+  window.ethereum.on('chainChanged', () => {
+    window.location.reload();
   });
 }

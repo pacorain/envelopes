@@ -6,13 +6,31 @@
   let tokenInput = $state(portfolio.tokenAddress);
   let saved = $state(false);
 
+  function isValidAddress(addr) {
+    return /^0x[0-9a-fA-F]{40}$/.test(addr);
+  }
+
+  function isInputValid() {
+    const p = portfolioInput.trim();
+    const t = tokenInput.trim();
+    // Allow empty portfolio (meaning: no portfolio configured yet)
+    if (p && !isValidAddress(p)) return false;
+    // Token address must be valid if provided
+    if (t && !isValidAddress(t)) return false;
+    return true;
+  }
+
   function save() {
+    if (!isInputValid()) return;
     portfolio.saveAddress(portfolioInput.trim());
     portfolio.saveTokenAddress(tokenInput.trim());
     saved = true;
     setTimeout(() => { saved = false; }, 2000);
     if (wallet.provider) portfolio.refresh();
   }
+
+  let portfolioInvalid = $derived(portfolioInput.trim() !== '' && !isValidAddress(portfolioInput.trim()));
+  let tokenInvalid = $derived(tokenInput.trim() !== '' && !isValidAddress(tokenInput.trim()));
 </script>
 
 <div class="page">
@@ -32,7 +50,11 @@
         placeholder="0x…"
         bind:value={portfolioInput}
         spellcheck="false"
+        class:invalid={portfolioInvalid}
       />
+      {#if portfolioInvalid}
+        <span class="field-error">Invalid address format</span>
+      {/if}
     </label>
 
     <label>
@@ -42,12 +64,17 @@
         placeholder="0x…"
         bind:value={tokenInput}
         spellcheck="false"
+        class:invalid={tokenInvalid}
       />
-      <span class="hint">Default: USDC on Base (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)</span>
+      {#if tokenInvalid}
+        <span class="field-error">Invalid address format</span>
+      {:else}
+        <span class="hint">Default: USDC on Base (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)</span>
+      {/if}
     </label>
 
     <div class="actions">
-      <button class="primary" onclick={save}>
+      <button class="primary" onclick={save} disabled={!isInputValid()}>
         {saved ? '✓ Saved' : 'Save'}
       </button>
     </div>
@@ -117,6 +144,15 @@
   input[type="text"]:focus {
     outline: none;
     border-color: var(--accent);
+  }
+
+  input[type="text"].invalid {
+    border-color: var(--danger);
+  }
+
+  .field-error {
+    font-size: 0.78rem;
+    color: var(--danger);
   }
 
   .hint {

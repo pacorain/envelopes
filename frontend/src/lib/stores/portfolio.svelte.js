@@ -11,6 +11,7 @@ class PortfolioState {
   tokenAddress = $state(localStorage.getItem('envelope.tokenAddress') ?? USDC_BASE);
 
   // Loaded contract state
+  token = $state(null);            // on-chain token address (from contract.token())
   admin = $state(null);
   pendingAdmin = $state(null);
   withdrawalAddress = $state(null);
@@ -50,13 +51,15 @@ class PortfolioState {
       const contract = this.contract;
       const account = wallet.account;
 
-      const [adminAddr, pendingAdminAddr, withdrawalAddr, unallocated] = await Promise.all([
+      const [tokenAddr, adminAddr, pendingAdminAddr, withdrawalAddr, unallocated] = await Promise.all([
+        contract.token(),
         contract.admin(),
         contract.pendingAdmin(),
         contract.withdrawalAddress(),
         contract.unallocated(),
       ]);
 
+      this.token = tokenAddr;
       this.admin = adminAddr;
       this.pendingAdmin = pendingAdminAddr === ethers.ZeroAddress ? null : pendingAdminAddr;
       this.withdrawalAddress = withdrawalAddr;
