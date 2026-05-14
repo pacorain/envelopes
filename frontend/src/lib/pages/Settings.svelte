@@ -1,10 +1,17 @@
 <script>
+  import { ethers } from 'ethers';
   import { portfolio } from '../stores/portfolio.svelte.js';
   import { wallet } from '../stores/wallet.svelte.js';
+  import { PortfolioABI, PortfolioBytecode } from '../abi/Portfolio.js';
+  import TxButton from '../components/TxButton.svelte';
 
   let portfolioInput = $state(portfolio.address);
   let tokenInput = $state(portfolio.tokenAddress);
   let saved = $state(false);
+
+  // Deploy form state
+  let deployTokenAddr = $state(portfolio.tokenAddress);
+  let deployWithdrawalAddr = $state('');
 
   function isValidAddress(addr) {
     return /^0x[0-9a-fA-F]{40}$/.test(addr);
@@ -31,6 +38,22 @@
 
   let portfolioInvalid = $derived(portfolioInput.trim() !== '' && !isValidAddress(portfolioInput.trim()));
   let tokenInvalid = $derived(tokenInput.trim() !== '' && !isValidAddress(tokenInput.trim()));
+
+  let deployTokenInvalid = $derived(!isValidAddress(deployTokenAddr.trim()));
+  let deployWithdrawalInvalid = $derived(!isValidAddress(deployWithdrawalAddr.trim()));
+  let deployDisabled = $derived(deployTokenInvalid || deployWithdrawalInvalid || !wallet.connected);
+
+  async function deployPortfolio() {
+    if (!wallet.signer) throw new Error('Wallet not connected');
+    const factory = new ethers.ContractFactory(PortfolioABI, PortfolioBytecode, wallet.signer);
+    const contract = await factory.deploy(deployTokenAddr.trim(), deployWithdrawalAddr.trim());
+    const deployTx = contract.deploymentTransaction();
+    await contract.waitForDeployment();
+    const addr = await contract.getAddress();
+    portfolio.saveAddress(addr);
+    portfolioInput = addr;
+    return deployTx;
+  }
 </script>
 
 <div class="page">
@@ -82,15 +105,55 @@
 
   <section class="card">
     <h2>Deploy New Portfolio</h2>
-    <p class="hint">
-      This feature is not yet available in the UI. To deploy a new Portfolio contract,
-      use the Hardhat deploy script in the <code>contracts/</code> directory, then paste
-      the resulting address above.
-    </p>
-    <p class="hint">
-      Constructor parameters: <code>token_</code> (ERC-20 token address),
-      <code>withdrawalAddress_</code> (where funds can be withdrawn).
-    </p>
+    {#if !wallet.connected}
+      <p class="hint">Connect your wallet to deploy a new Portfolio contract.</p>
+    {:else}
+      <p class="hint">
+        Deploy a fresh Portfolio contract. You will be set as admin.
+        The portfolio address will be saved automatically on success.
+      </p>
+
+      <label>
+        Token address
+        <input
+          type="text"
+          placeholder="0x… (ERC-20 token)"
+          bind:value={deployTokenAddr}
+          spellcheck="false"
+          class:invalid={deployTokenInvalid && deployTokenAddr.trim() !== ''}
+        />
+        {#if deployTokenInvalid && deployTokenAddr.trim() !== ''}
+          <span class="field-error">Invalid address format</span>
+        {:else}
+          <span class="hint">Default: USDC on Base (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)</span>
+        {/if}
+      </label>
+
+      <label>
+        Withdrawal address
+        <input
+          type="text"
+          placeholder="0x… (funds exit address)"
+          bind:value={deployWithdrawalAddr}
+          spellcheck="false"
+          class:invalid={deployWithdrawalInvalid && deployWithdrawalAddr.trim() !== ''}
+        />
+        {#if deployWithdrawalInvalid && deployWithdrawalAddr.trim() !== ''}
+          <span class="field-error">Invalid address format</span>
+        {:else}
+          <span class="hint">The only address funds can be withdrawn to. Use your cold wallet.</span>
+        {/if}
+      </label>
+
+      <div class="actions">
+        <TxButton
+          label="Deploy Portfolio"
+          action={deployPortfolio}
+          disabled={deployDisabled}
+          onSuccess={() => {}}
+        />
+      </div>
+    {/if}
   </section>
 </div>
 
@@ -182,10 +245,4 @@
     opacity: 0.9;
   }
 
-  code {
-    background: var(--surface-alt);
-    border-radius: 4px;
-    padding: 0.1em 0.35em;
-    font-size: 0.85em;
-  }
 </style>
