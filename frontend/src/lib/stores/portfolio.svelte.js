@@ -4,7 +4,6 @@ import { PortfolioABI, ERC20ABI } from '../abi/Portfolio.js';
 import { EnvelopeABI } from '../abi/Envelope.js';
 
 const USDC_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
-const TOKEN_DECIMALS = 6;
 
 class PortfolioState {
   address = $state(localStorage.getItem('envelope.portfolioAddress') ?? '');
@@ -12,6 +11,7 @@ class PortfolioState {
 
   // Loaded contract state
   token = $state(null);            // on-chain token address (from contract.token())
+  decimals = $state(6);            // on-chain token decimals; default 6 matches USDC
   admin = $state(null);
   pendingAdmin = $state(null);
   withdrawalAddress = $state(null);
@@ -28,9 +28,12 @@ class PortfolioState {
     return new ethers.Contract(this.address, PortfolioABI, wallet.signer ?? wallet.provider);
   }
 
+  // Prefer the on-chain token address (set by refresh()) over the localStorage default.
+  // Falls back to tokenAddress so the getter works before a portfolio is loaded.
   get tokenContract() {
-    if (!this.tokenAddress || !wallet.provider) return null;
-    return new ethers.Contract(this.tokenAddress, ERC20ABI, wallet.signer ?? wallet.provider);
+    const addr = this.token ?? this.tokenAddress;
+    if (!addr || !wallet.provider) return null;
+    return new ethers.Contract(addr, ERC20ABI, wallet.signer ?? wallet.provider);
   }
 
   saveAddress(addr) {
@@ -60,6 +63,8 @@ class PortfolioState {
       ]);
 
       this.token = tokenAddr;
+      const tokenErc20 = new ethers.Contract(tokenAddr, ERC20ABI, wallet.provider);
+      this.decimals = await tokenErc20.decimals();
       this.admin = adminAddr;
       this.pendingAdmin = pendingAdminAddr === ethers.ZeroAddress ? null : pendingAdminAddr;
       this.withdrawalAddress = withdrawalAddr;
@@ -111,14 +116,13 @@ class PortfolioState {
 }
 
 export const portfolio = new PortfolioState();
-export { TOKEN_DECIMALS };
 
-/** Format a token amount (bigint) for display */
+/** Format a token amount (bigint) for display using the loaded token's decimals */
 export function formatAmount(amount) {
-  return ethers.formatUnits(amount, TOKEN_DECIMALS);
+  return ethers.formatUnits(amount, portfolio.decimals);
 }
 
-/** Parse a user-entered amount string to bigint */
+/** Parse a user-entered amount string to bigint using the loaded token's decimals */
 export function parseAmount(str) {
-  return ethers.parseUnits(str, TOKEN_DECIMALS);
+  return ethers.parseUnits(str, portfolio.decimals);
 }
