@@ -91,10 +91,15 @@ contract Portfolio {
     /**
      * @notice Propose a new admin. The proposed address must call acceptAdmin() to complete the transfer.
      * @dev Admin only. Reverts on zero address. Does not change admin until acceptAdmin() is called.
+     *      If a pending proposal already exists, it is implicitly cancelled and AdminTransferCancelled
+     *      is emitted before the new proposal is recorded.
      * @param newAdmin The address being proposed as the new admin.
      */
     function proposeAdmin(address newAdmin) external onlyAdmin {
         if (newAdmin == address(0)) revert ZeroAddress();
+        if (pendingAdmin != address(0)) {
+            emit AdminTransferCancelled(admin, pendingAdmin);
+        }
         pendingAdmin = newAdmin;
         emit AdminTransferProposed(admin, newAdmin);
     }
