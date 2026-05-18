@@ -48,6 +48,39 @@ class WalletState {
     this.error = null;
     this.wrongNetwork = false;
   }
+
+  async switchToBase() {
+    if (!window.ethereum) return;
+    this.error = null;
+    try {
+      await window.ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: '0x2105' }],
+      });
+      // On success MetaMask fires chainChanged → page reloads → connect() re-runs
+    } catch (e) {
+      if (e.code === 4902) {
+        // Base not in wallet yet — add it, then the switch completes automatically
+        try {
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId: '0x2105',
+              chainName: 'Base',
+              nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+              rpcUrls: ['https://mainnet.base.org'],
+              blockExplorerUrls: ['https://basescan.org'],
+            }],
+          });
+        } catch (addError) {
+          this.error = addError.message ?? 'Failed to add Base network to wallet';
+        }
+      } else if (e.code !== 4001) {
+        // 4001 = user rejected — stay silent; anything else is unexpected
+        this.error = e.message ?? 'Failed to switch network';
+      }
+    }
+  }
 }
 
 export const wallet = new WalletState();

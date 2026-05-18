@@ -11,6 +11,8 @@
     <span class="address">{short(wallet.account)}</span>
     <button class="disconnect" onclick={() => wallet.disconnect()}>Disconnect</button>
   </div>
+{:else if wallet.wrongNetwork}
+  <button class="switch-btn" onclick={() => wallet.switchToBase()}>Switch to Base</button>
 {:else}
   <button class="connect-btn" onclick={() => wallet.connect()}>Connect Wallet</button>
 {/if}
@@ -61,6 +63,21 @@
   }
 
   .connect-btn:hover {
+    opacity: 0.9;
+  }
+
+  .switch-btn {
+    background: var(--warning, #f59e0b);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 0.4rem 1rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+
+  .switch-btn:hover {
     opacity: 0.9;
   }
 
