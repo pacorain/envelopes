@@ -116,6 +116,7 @@ contract Portfolio {
      */
     function addManager(address manager) external onlyAdmin {
         if (manager == address(0)) revert ZeroAddress();
+        if (managers[manager]) return;
         managers[manager] = true;
         emit ManagerAdded(manager);
     }
@@ -126,9 +127,8 @@ contract Portfolio {
      * @param manager The address to revoke the manager role from.
      */
     function removeManager(address manager) external onlyAdmin {
-        if (managers[manager]) {
-            managers[manager] = false;
-            emit ManagerRemoved(manager);
-        }
+        if (!managers[manager]) return;
+        managers[manager] = false;
+        emit ManagerRemoved(manager);
     }
 }

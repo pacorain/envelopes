@@ -220,6 +220,12 @@ describe("Portfolio", function () {
         portfolio.connect(admin).addManager(ethers.ZeroAddress)
       ).to.be.revertedWithCustomError(portfolio, "ZeroAddress");
     });
+
+    it("does not emit ManagerAdded if address is already a manager", async function () {
+      await portfolio.connect(admin).addManager(otherAccount.address);
+      await expect(portfolio.connect(admin).addManager(otherAccount.address))
+        .to.not.emit(portfolio, "ManagerAdded");
+    });
   });
 
   describe("removeManager()", function () {
@@ -242,6 +248,12 @@ describe("Portfolio", function () {
       await expect(
         portfolio.connect(otherAccount).removeManager(otherAccount.address)
       ).to.be.revertedWithCustomError(portfolio, "OnlyAdmin");
+    });
+
+    it("does not emit ManagerRemoved if address was not a manager", async function () {
+      const [, , thirdAccount] = await ethers.getSigners();
+      await expect(portfolio.connect(admin).removeManager(thirdAccount.address))
+        .to.not.emit(portfolio, "ManagerRemoved");
     });
   });
 
