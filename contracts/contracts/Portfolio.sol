@@ -126,7 +126,9 @@ contract Portfolio {
      * @param manager The address to revoke the manager role from.
      */
     function removeManager(address manager) external onlyAdmin {
-        managers[manager] = false;
-        emit ManagerRemoved(manager);
+        if (managers[manager]) {
+            managers[manager] = false;
+            emit ManagerRemoved(manager);
+        }
     }
 }
