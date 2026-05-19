@@ -24,8 +24,12 @@ contract Portfolio {
     /// @notice The only external address to which funds may be withdrawn.
     address public withdrawalAddress;
 
+    /// @notice Addresses granted the manager role. Admins are implicitly managers.
+    mapping(address => bool) public managers;
+
     error OnlyAdmin();
     error OnlyPendingAdmin();
+    error OnlyManager();
     error ZeroAddress();
     error InvalidToken();
 
@@ -33,9 +37,16 @@ contract Portfolio {
     event AdminTransferProposed(address indexed currentAdmin, address indexed proposedAdmin);
     event AdminTransferCancelled(address indexed admin, address indexed cancelledPendingAdmin);
     event AdminTransferred(address indexed previousAdmin, address indexed newAdmin);
+    event ManagerAdded(address indexed manager);
+    event ManagerRemoved(address indexed manager);
 
     modifier onlyAdmin() {
         if (msg.sender != admin) revert OnlyAdmin();
+        _;
+    }
+
+    modifier onlyManager() {
+        if (msg.sender != admin && !managers[msg.sender]) revert OnlyManager();
         _;
     }
 
@@ -77,7 +88,11 @@ contract Portfolio {
 
     /**
      * @notice Accept a pending admin transfer. Must be called by the pending admin.
-     * @dev Reverts if the caller is not the pending admin.
+     * @dev Reverts if the caller is not the pending admin. The `managers` mapping is
+     *      intentionally not cleared on admin transfer — existing managers retain their
+     *      role. After accepting, the new admin should audit prior `ManagerAdded` /
+     *      `ManagerRemoved` events and call `removeManager` for any entries that should
+     *      not carry over.
      */
     function acceptAdmin() external {
         if (msg.sender != pendingAdmin) revert OnlyPendingAdmin();
@@ -96,5 +111,28 @@ contract Portfolio {
         if (newWithdrawalAddress == address(0)) revert ZeroAddress();
         withdrawalAddress = newWithdrawalAddress;
         emit WithdrawalAddressSet(newWithdrawalAddress);
+    }
+
+    /**
+     * @notice Grant the manager role to an address.
+     * @dev Admin only. Reverts on zero address.
+     * @param manager The address to grant the manager role.
+     */
+    function addManager(address manager) external onlyAdmin {
+        if (manager == address(0)) revert ZeroAddress();
+        if (managers[manager]) return;
+        managers[manager] = true;
+        emit ManagerAdded(manager);
+    }
+
+    /**
+     * @notice Revoke the manager role from an address.
+     * @dev Admin only.
+     * @param manager The address to revoke the manager role from.
+     */
+    function removeManager(address manager) external onlyAdmin {
+        if (!managers[manager]) return;
+        managers[manager] = false;
+        emit ManagerRemoved(manager);
     }
 }
