@@ -30,8 +30,8 @@ contract Envelope {
     error ETHNotAccepted();
     error CannotRescuePrimaryToken();
 
-    // slither-disable-next-line locked-ether
     /// @notice Reject any ETH sent directly to this contract.
+    // slither-disable-next-line locked-ether
     receive() external payable {
         revert ETHNotAccepted();
     }
