@@ -88,7 +88,11 @@ contract Portfolio {
 
     /**
      * @notice Accept a pending admin transfer. Must be called by the pending admin.
-     * @dev Reverts if the caller is not the pending admin.
+     * @dev Reverts if the caller is not the pending admin. The `managers` mapping is
+     *      intentionally not cleared on admin transfer — existing managers retain their
+     *      role. After accepting, the new admin should audit prior `ManagerAdded` /
+     *      `ManagerRemoved` events and call `removeManager` for any entries that should
+     *      not carry over.
      */
     function acceptAdmin() external {
         if (msg.sender != pendingAdmin) revert OnlyPendingAdmin();
