@@ -213,6 +213,7 @@ contract Portfolio {
      * @param index  The target envelope index.
      * @param amount The number of tokens to allocate.
      */
+    // slither-disable-next-line arbitrary-send-erc20
     function allocate(uint256 index, uint256 amount) external onlyManager {
         address envelopeAddr = _getEnvelope(index);
         if (amount > unallocated()) revert InsufficientBalance();

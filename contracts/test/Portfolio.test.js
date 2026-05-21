@@ -39,17 +39,17 @@ describe("Portfolio", function () {
 
     it("emits AdminTransferred on deploy", async function () {
       const Portfolio = await ethers.getContractFactory("Portfolio");
-      const tx = Portfolio.deploy(await token.getAddress(), withdrawalAddress);
-      await expect(tx)
-        .to.emit(await tx, "AdminTransferred")
+      const deployedPortfolio = await Portfolio.deploy(await token.getAddress(), withdrawalAddress);
+      await expect(deployedPortfolio.deploymentTransaction())
+        .to.emit(deployedPortfolio, "AdminTransferred")
         .withArgs(ethers.ZeroAddress, admin.address);
     });
 
     it("emits WithdrawalAddressSet on deploy", async function () {
       const Portfolio = await ethers.getContractFactory("Portfolio");
-      const tx = Portfolio.deploy(await token.getAddress(), withdrawalAddress);
-      await expect(tx)
-        .to.emit(await tx, "WithdrawalAddressSet")
+      const deployedPortfolio = await Portfolio.deploy(await token.getAddress(), withdrawalAddress);
+      await expect(deployedPortfolio.deploymentTransaction())
+        .to.emit(deployedPortfolio, "WithdrawalAddressSet")
         .withArgs(withdrawalAddress);
     });
 
