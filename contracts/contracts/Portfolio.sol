@@ -36,7 +36,7 @@ contract Portfolio {
     error ZeroAddress();
     error InvalidToken();
     error ETHNotAccepted();
-    error InsufficientUnallocated();
+    error InsufficientBalance();
 
     event Deposited(address indexed from, uint256 amount);
     event UnallocatedWithdrawn(uint256 amount);
@@ -166,7 +166,7 @@ contract Portfolio {
      * @param amount The number of tokens to withdraw.
      */
     function withdrawUnallocated(uint256 amount) external onlyAdmin {
-        if (amount > unallocated()) revert InsufficientUnallocated();
+        if (amount > unallocated()) revert InsufficientBalance();
         IERC20(token).safeTransfer(withdrawalAddress, amount);
         emit UnallocatedWithdrawn(amount);
     }

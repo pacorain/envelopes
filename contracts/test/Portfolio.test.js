@@ -373,7 +373,7 @@ describe("Portfolio", function () {
     it("reverts when amount exceeds unallocated balance", async function () {
       await expect(
         portfolio.connect(admin).withdrawUnallocated(AMOUNT + 1n)
-      ).to.be.revertedWithCustomError(portfolio, "InsufficientUnallocated");
+      ).to.be.revertedWithCustomError(portfolio, "InsufficientBalance");
     });
 
     it("sends to withdrawalAddress, not an arbitrary address", async function () {
