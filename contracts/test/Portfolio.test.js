@@ -285,4 +285,122 @@ describe("Portfolio", function () {
       ).to.be.revertedWithCustomError(portfolio, "ZeroAddress");
     });
   });
+
+  describe("deposit()", function () {
+    const DEPOSIT_AMOUNT = 1000n * 10n ** 6n; // 1000 USDC (6 decimals)
+
+    beforeEach(async function () {
+      await token.mint(admin.address, DEPOSIT_AMOUNT);
+      await token.connect(admin).approve(await portfolio.getAddress(), DEPOSIT_AMOUNT);
+    });
+
+    it("transfers tokens into the portfolio", async function () {
+      await portfolio.connect(admin).deposit(DEPOSIT_AMOUNT);
+      expect(await token.balanceOf(await portfolio.getAddress())).to.equal(DEPOSIT_AMOUNT);
+    });
+
+    it("increases unallocated() balance", async function () {
+      await portfolio.connect(admin).deposit(DEPOSIT_AMOUNT);
+      expect(await portfolio.unallocated()).to.equal(DEPOSIT_AMOUNT);
+    });
+
+    it("emits Deposited", async function () {
+      await expect(portfolio.connect(admin).deposit(DEPOSIT_AMOUNT))
+        .to.emit(portfolio, "Deposited")
+        .withArgs(admin.address, DEPOSIT_AMOUNT);
+    });
+
+    it("can be called by any account, not just admin", async function () {
+      await token.mint(otherAccount.address, DEPOSIT_AMOUNT);
+      await token.connect(otherAccount).approve(await portfolio.getAddress(), DEPOSIT_AMOUNT);
+      await expect(portfolio.connect(otherAccount).deposit(DEPOSIT_AMOUNT)).to.not.be.reverted;
+      expect(await portfolio.unallocated()).to.equal(DEPOSIT_AMOUNT);
+    });
+
+    it("reverts when caller has insufficient allowance", async function () {
+      await token.connect(admin).approve(await portfolio.getAddress(), 0n);
+      await expect(portfolio.connect(admin).deposit(DEPOSIT_AMOUNT)).to.be.reverted;
+    });
+  });
+
+  describe("unallocated()", function () {
+    const AMOUNT = 500n * 10n ** 6n;
+
+    it("returns zero when no tokens have been deposited", async function () {
+      expect(await portfolio.unallocated()).to.equal(0n);
+    });
+
+    it("includes tokens sent directly to the portfolio address (no deposit() call)", async function () {
+      await token.mint(admin.address, AMOUNT);
+      await token.connect(admin).transfer(await portfolio.getAddress(), AMOUNT);
+      expect(await portfolio.unallocated()).to.equal(AMOUNT);
+    });
+  });
+
+  describe("withdrawUnallocated()", function () {
+    const AMOUNT = 750n * 10n ** 6n;
+
+    beforeEach(async function () {
+      await token.mint(admin.address, AMOUNT);
+      await token.connect(admin).approve(await portfolio.getAddress(), AMOUNT);
+      await portfolio.connect(admin).deposit(AMOUNT);
+    });
+
+    it("sends tokens to the withdrawal address", async function () {
+      const before = await token.balanceOf(withdrawalAddress);
+      await portfolio.connect(admin).withdrawUnallocated(AMOUNT);
+      expect(await token.balanceOf(withdrawalAddress)).to.equal(before + AMOUNT);
+    });
+
+    it("reduces unallocated() balance", async function () {
+      const half = AMOUNT / 2n;
+      await portfolio.connect(admin).withdrawUnallocated(half);
+      expect(await portfolio.unallocated()).to.equal(AMOUNT - half);
+    });
+
+    it("emits UnallocatedWithdrawn", async function () {
+      await expect(portfolio.connect(admin).withdrawUnallocated(AMOUNT))
+        .to.emit(portfolio, "UnallocatedWithdrawn")
+        .withArgs(AMOUNT);
+    });
+
+    it("can be called by a manager (non-admin)", async function () {
+      const [, , manager] = await ethers.getSigners();
+      await portfolio.connect(admin).addManager(manager.address);
+      const before = await token.balanceOf(withdrawalAddress);
+      await portfolio.connect(manager).withdrawUnallocated(AMOUNT);
+      expect(await token.balanceOf(withdrawalAddress)).to.equal(before + AMOUNT);
+    });
+
+    it("reverts when called by non-manager", async function () {
+      const [, , nonManager] = await ethers.getSigners();
+      await expect(
+        portfolio.connect(nonManager).withdrawUnallocated(AMOUNT)
+      ).to.be.revertedWithCustomError(portfolio, "OnlyManager");
+    });
+
+    it("reverts when amount exceeds unallocated balance", async function () {
+      await expect(
+        portfolio.connect(admin).withdrawUnallocated(AMOUNT + 1n)
+      ).to.be.revertedWithCustomError(portfolio, "InsufficientBalance");
+    });
+
+    it("sends to withdrawalAddress, not an arbitrary address", async function () {
+      const [, , thirdAccount] = await ethers.getSigners();
+      const before = await token.balanceOf(thirdAccount.address);
+      await portfolio.connect(admin).withdrawUnallocated(AMOUNT);
+      expect(await token.balanceOf(thirdAccount.address)).to.equal(before);
+    });
+  });
+
+  describe("receive()", function () {
+    it("reverts when ETH is sent directly", async function () {
+      await expect(
+        admin.sendTransaction({
+          to: await portfolio.getAddress(),
+          value: ethers.parseEther("1"),
+        })
+      ).to.be.revertedWithCustomError(portfolio, "ETHNotAccepted");
+    });
+  });
 });
