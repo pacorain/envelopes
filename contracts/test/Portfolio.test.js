@@ -364,10 +364,19 @@ describe("Portfolio", function () {
         .withArgs(AMOUNT);
     });
 
-    it("reverts when called by non-admin", async function () {
+    it("can be called by a manager (non-admin)", async function () {
+      const [, , manager] = await ethers.getSigners();
+      await portfolio.connect(admin).addManager(manager.address);
+      const before = await token.balanceOf(withdrawalAddress);
+      await portfolio.connect(manager).withdrawUnallocated(AMOUNT);
+      expect(await token.balanceOf(withdrawalAddress)).to.equal(before + AMOUNT);
+    });
+
+    it("reverts when called by non-manager", async function () {
+      const [, , nonManager] = await ethers.getSigners();
       await expect(
-        portfolio.connect(otherAccount).withdrawUnallocated(AMOUNT)
-      ).to.be.revertedWithCustomError(portfolio, "OnlyAdmin");
+        portfolio.connect(nonManager).withdrawUnallocated(AMOUNT)
+      ).to.be.revertedWithCustomError(portfolio, "OnlyManager");
     });
 
     it("reverts when amount exceeds unallocated balance", async function () {

@@ -162,10 +162,10 @@ contract Portfolio {
 
     /**
      * @notice Withdraw unallocated funds to the withdrawal address.
-     * @dev Admin only. Reverts if `amount` exceeds the unallocated balance.
+     * @dev Manager or admin. Reverts if `amount` exceeds the unallocated balance.
      * @param amount The number of tokens to withdraw.
      */
-    function withdrawUnallocated(uint256 amount) external onlyAdmin {
+    function withdrawUnallocated(uint256 amount) external onlyManager {
         if (amount > unallocated()) revert InsufficientBalance();
         IERC20(token).safeTransfer(withdrawalAddress, amount);
         emit UnallocatedWithdrawn(amount);
