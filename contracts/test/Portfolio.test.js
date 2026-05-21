@@ -220,6 +220,12 @@ describe("Portfolio", function () {
         portfolio.connect(admin).addManager(ethers.ZeroAddress)
       ).to.be.revertedWithCustomError(portfolio, "ZeroAddress");
     });
+
+    it("does not emit ManagerAdded if address is already a manager", async function () {
+      await portfolio.connect(admin).addManager(otherAccount.address);
+      await expect(portfolio.connect(admin).addManager(otherAccount.address))
+        .to.not.emit(portfolio, "ManagerAdded");
+    });
   });
 
   describe("removeManager()", function () {
@@ -242,6 +248,12 @@ describe("Portfolio", function () {
       await expect(
         portfolio.connect(otherAccount).removeManager(otherAccount.address)
       ).to.be.revertedWithCustomError(portfolio, "OnlyAdmin");
+    });
+
+    it("does not emit ManagerRemoved if address was not a manager", async function () {
+      const [, , thirdAccount] = await ethers.getSigners();
+      await expect(portfolio.connect(admin).removeManager(thirdAccount.address))
+        .to.not.emit(portfolio, "ManagerRemoved");
     });
   });
 
@@ -352,16 +364,25 @@ describe("Portfolio", function () {
         .withArgs(AMOUNT);
     });
 
-    it("reverts when called by non-admin", async function () {
+    it("can be called by a manager (non-admin)", async function () {
+      const [, , manager] = await ethers.getSigners();
+      await portfolio.connect(admin).addManager(manager.address);
+      const before = await token.balanceOf(withdrawalAddress);
+      await portfolio.connect(manager).withdrawUnallocated(AMOUNT);
+      expect(await token.balanceOf(withdrawalAddress)).to.equal(before + AMOUNT);
+    });
+
+    it("reverts when called by non-manager", async function () {
+      const [, , nonManager] = await ethers.getSigners();
       await expect(
-        portfolio.connect(otherAccount).withdrawUnallocated(AMOUNT)
-      ).to.be.revertedWithCustomError(portfolio, "OnlyAdmin");
+        portfolio.connect(nonManager).withdrawUnallocated(AMOUNT)
+      ).to.be.revertedWithCustomError(portfolio, "OnlyManager");
     });
 
     it("reverts when amount exceeds unallocated balance", async function () {
       await expect(
         portfolio.connect(admin).withdrawUnallocated(AMOUNT + 1n)
-      ).to.be.revertedWithCustomError(portfolio, "InsufficientUnallocated");
+      ).to.be.revertedWithCustomError(portfolio, "InsufficientBalance");
     });
 
     it("sends to withdrawalAddress, not an arbitrary address", async function () {
@@ -527,7 +548,7 @@ describe("Portfolio", function () {
     it("reverts when amount exceeds unallocated balance", async function () {
       await expect(
         portfolio.connect(admin).allocate(0, AMOUNT + 1n)
-      ).to.be.revertedWithCustomError(portfolio, "InsufficientUnallocated");
+      ).to.be.revertedWithCustomError(portfolio, "InsufficientBalance");
     });
 
     it("reverts when called by a non-manager", async function () {

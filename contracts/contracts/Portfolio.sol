@@ -40,7 +40,7 @@ contract Portfolio {
     error ZeroAddress();
     error InvalidToken();
     error ETHNotAccepted();
-    error InsufficientUnallocated();
+    error InsufficientBalance();
     error EnvelopeNotFound();
     error EnvelopeNotEmpty();
 
@@ -104,7 +104,11 @@ contract Portfolio {
 
     /**
      * @notice Accept a pending admin transfer. Must be called by the pending admin.
-     * @dev Reverts if the caller is not the pending admin.
+     * @dev Reverts if the caller is not the pending admin. The `managers` mapping is
+     *      intentionally not cleared on admin transfer — existing managers retain their
+     *      role. After accepting, the new admin should audit prior `ManagerAdded` /
+     *      `ManagerRemoved` events and call `removeManager` for any entries that should
+     *      not carry over.
      */
     function acceptAdmin() external {
         if (msg.sender != pendingAdmin) revert OnlyPendingAdmin();
@@ -132,6 +136,7 @@ contract Portfolio {
      */
     function addManager(address manager) external onlyAdmin {
         if (manager == address(0)) revert ZeroAddress();
+        if (managers[manager]) return;
         managers[manager] = true;
         emit ManagerAdded(manager);
     }
@@ -142,6 +147,7 @@ contract Portfolio {
      * @param manager The address to revoke the manager role from.
      */
     function removeManager(address manager) external onlyAdmin {
+        if (!managers[manager]) return;
         managers[manager] = false;
         emit ManagerRemoved(manager);
     }
@@ -165,11 +171,11 @@ contract Portfolio {
 
     /**
      * @notice Withdraw unallocated funds to the withdrawal address.
-     * @dev Admin only. Reverts if `amount` exceeds the unallocated balance.
+     * @dev Manager or admin. Reverts if `amount` exceeds the unallocated balance.
      * @param amount The number of tokens to withdraw.
      */
-    function withdrawUnallocated(uint256 amount) external onlyAdmin {
-        if (amount > unallocated()) revert InsufficientUnallocated();
+    function withdrawUnallocated(uint256 amount) external onlyManager {
+        if (amount > unallocated()) revert InsufficientBalance();
         IERC20(token).safeTransfer(withdrawalAddress, amount);
         emit UnallocatedWithdrawn(amount);
     }
@@ -209,7 +215,7 @@ contract Portfolio {
      */
     function allocate(uint256 index, uint256 amount) external onlyManager {
         address envelopeAddr = _getEnvelope(index);
-        if (amount > unallocated()) revert InsufficientUnallocated();
+        if (amount > unallocated()) revert InsufficientBalance();
         IERC20(token).safeTransfer(envelopeAddr, amount);
         emit Allocated(index, amount);
     }
