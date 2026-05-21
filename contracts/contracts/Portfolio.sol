@@ -202,7 +202,7 @@ contract Portfolio {
     // slither-disable-next-line reentrancy-no-eth
     function deleteEnvelope(uint256 index) external onlyAdmin {
         address envelopeAddr = _getEnvelope(index);
-        if (Envelope(envelopeAddr).balance() > 0) revert EnvelopeNotEmpty();
+        if (Envelope(payable(envelopeAddr)).balance() > 0) revert EnvelopeNotEmpty();
         envelopes[index] = address(0);
         emit EnvelopeDeleted(index);
     }
