@@ -646,7 +646,7 @@ describe("Portfolio", function () {
 
     it("succeeds when called by a granted manager", async function () {
       await portfolio.connect(admin).addManager(otherAccount.address);
-      await expect(portfolio.connect(otherAccount).moveFunds(0, 1, AMOUNT)).to.not.revert(ethers);
+      await expect(portfolio.connect(otherAccount).moveFunds(0, 1, AMOUNT)).to.not.be.reverted;
     });
   });
 
@@ -712,13 +712,13 @@ describe("Portfolio", function () {
       await portfolio.connect(admin).addManager(otherAccount.address);
       await expect(
         portfolio.connect(otherAccount).withdrawFromEnvelope(0, AMOUNT)
-      ).to.not.revert(ethers);
+      ).to.not.be.reverted;
     });
 
     it("reverts when envelope has insufficient balance", async function () {
       await expect(
         portfolio.connect(admin).withdrawFromEnvelope(0, AMOUNT + 1n)
-      ).to.revert(ethers);
+      ).to.be.reverted;
     });
   });
 
