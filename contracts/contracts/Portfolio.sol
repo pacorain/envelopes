@@ -3,6 +3,7 @@ pragma solidity 0.8.34;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "./Envelope.sol";
 
 /**
  * @title Portfolio
@@ -30,6 +31,9 @@ contract Portfolio {
     /// @notice Addresses granted the manager role. Admins are implicitly managers.
     mapping(address => bool) public managers;
 
+    /// @notice Deployed envelope contracts. Index is the envelope ID; address(0) means deleted.
+    address[] public envelopes;
+
     error OnlyAdmin();
     error OnlyPendingAdmin();
     error OnlyManager();
@@ -37,6 +41,8 @@ contract Portfolio {
     error InvalidToken();
     error ETHNotAccepted();
     error InsufficientBalance();
+    error EnvelopeNotFound();
+    error EnvelopeNotEmpty();
 
     event Deposited(address indexed from, uint256 amount);
     event UnallocatedWithdrawn(uint256 amount);
@@ -46,6 +52,9 @@ contract Portfolio {
     event AdminTransferred(address indexed previousAdmin, address indexed newAdmin);
     event ManagerAdded(address indexed manager);
     event ManagerRemoved(address indexed manager);
+    event EnvelopeCreated(uint256 indexed index, address envelope, bytes32 name);
+    event EnvelopeDeleted(uint256 indexed index);
+    event Allocated(uint256 indexed index, uint256 amount);
 
     modifier onlyAdmin() {
         if (msg.sender != admin) revert OnlyAdmin();
@@ -171,9 +180,56 @@ contract Portfolio {
         emit UnallocatedWithdrawn(amount);
     }
 
+    /**
+     * @notice Deploy a new Envelope contract and register it in this portfolio.
+     * @dev Manager only. Returns the index of the new envelope.
+     * @param name A bytes32 identifier for the envelope (e.g. keccak256("mortgage")).
+     */
+    // slither-disable-next-line reentrancy-no-eth
+    function createEnvelope(bytes32 name) external onlyManager returns (uint256) {
+        address envelopeAddr = address(new Envelope(address(this), IERC20(token), name));
+        uint256 index = envelopes.length;
+        envelopes.push(envelopeAddr);
+        emit EnvelopeCreated(index, envelopeAddr, name);
+        return index;
+    }
+
+    /**
+     * @notice Delete an envelope slot. The envelope must have a zero balance.
+     * @dev Admin only. Sets the slot to address(0); index is not reused.
+     * @param index The index of the envelope to delete.
+     */
+    // slither-disable-next-line reentrancy-no-eth
+    function deleteEnvelope(uint256 index) external onlyAdmin {
+        address envelopeAddr = _getEnvelope(index);
+        if (Envelope(payable(envelopeAddr)).balance() > 0) revert EnvelopeNotEmpty();
+        envelopes[index] = address(0);
+        emit EnvelopeDeleted(index);
+    }
+
+    /**
+     * @notice Move unallocated funds into an envelope.
+     * @dev Manager only. Reverts if amount exceeds unallocated balance or envelope is invalid.
+     * @param index  The target envelope index.
+     * @param amount The number of tokens to allocate.
+     */
+    // slither-disable-next-line arbitrary-send-erc20
+    function allocate(uint256 index, uint256 amount) external onlyManager {
+        address envelopeAddr = _getEnvelope(index);
+        if (amount > unallocated()) revert InsufficientBalance();
+        IERC20(token).safeTransfer(envelopeAddr, amount);
+        emit Allocated(index, amount);
+    }
+
     /// @dev Reject ETH transfers — this contract is ERC-20 only.
     // slither-disable-next-line locked-ether
     receive() external payable {
         revert ETHNotAccepted();
+    }
+
+    /// @dev Reverts with EnvelopeNotFound for out-of-bounds or deleted indices.
+    function _getEnvelope(uint256 index) internal view returns (address) {
+        if (index >= envelopes.length || envelopes[index] == address(0)) revert EnvelopeNotFound();
+        return envelopes[index];
     }
 }
