@@ -236,8 +236,8 @@ contract Portfolio {
         if (from == to) revert SameEnvelope();
         address fromAddr = _getEnvelope(from);
         address toAddr = _getEnvelope(to);
-        Envelope(payable(fromAddr)).sendFunds(toAddr, amount);
         emit FundsMoved(from, to, amount);
+        Envelope(payable(fromAddr)).sendFunds(toAddr, amount);
     }
 
     /**
@@ -248,8 +248,8 @@ contract Portfolio {
      */
     function withdrawFromEnvelope(uint256 index, uint256 amount) external onlyManager {
         address envelopeAddr = _getEnvelope(index);
-        Envelope(payable(envelopeAddr)).sendFunds(withdrawalAddress, amount);
         emit EnvelopeWithdrawn(index, amount);
+        Envelope(payable(envelopeAddr)).sendFunds(withdrawalAddress, amount);
     }
 
     /**
@@ -262,8 +262,8 @@ contract Portfolio {
      */
     function rescueTokenFromEnvelope(uint256 index, address rescueToken_, uint256 amount) external onlyAdmin {
         address envelopeAddr = _getEnvelope(index);
-        Envelope(payable(envelopeAddr)).rescueToken(IERC20(rescueToken_), withdrawalAddress, amount);
         emit TokenRescued(index, rescueToken_, amount);
+        Envelope(payable(envelopeAddr)).rescueToken(IERC20(rescueToken_), withdrawalAddress, amount);
     }
 
     /// @dev Reject ETH transfers — this contract is ERC-20 only.
