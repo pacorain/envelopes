@@ -1,6 +1,7 @@
 <script>
   import { isAddress } from 'ethers';
   import { portfolioAddress, tokenAddress, DEFAULT_TOKEN_ADDRESS } from '../stores/settings.js';
+  import { NETWORK_NAME } from '../network.js';
 
   let portfolioInput = $state($portfolioAddress ?? '');
   let tokenInput = $state($tokenAddress ?? DEFAULT_TOKEN_ADDRESS);
@@ -81,7 +82,7 @@
   <div class="group">
     <h2>Token Address</h2>
     <p class="hint">
-      The ERC-20 token the portfolio manages. Default is USDC on Base.
+      The ERC-20 token the portfolio manages. Default is USDC on {NETWORK_NAME}.
     </p>
     <div class="row">
       <input
