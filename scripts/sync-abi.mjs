@@ -16,7 +16,7 @@ import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const ARTIFACTS = resolve(ROOT, 'contracts/artifacts/contracts/contracts');
+const ARTIFACTS = resolve(ROOT, 'contracts/artifacts/contracts');
 const FRONTEND_ABI = resolve(ROOT, 'frontend/src/lib/abi');
 
 function readArtifact(contractName) {
