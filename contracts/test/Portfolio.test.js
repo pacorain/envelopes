@@ -338,6 +338,11 @@ describe("Portfolio", function () {
       await token.connect(admin).approve(await portfolio.getAddress(), 0n);
       await expect(portfolio.connect(admin).deposit(DEPOSIT_AMOUNT)).to.be.revert(ethers);
     });
+
+    it("reverts on zero-amount deposit", async function () {
+      await expect(portfolio.connect(admin).deposit(0n))
+        .to.be.revertedWithCustomError(portfolio, "ZeroAmount");
+    });
   });
 
   describe("unallocated()", function () {
