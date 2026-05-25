@@ -47,6 +47,7 @@ contract Portfolio {
     error NoPendingAdminProposal();
     error NotAManager();
     error CannotRescuePrimaryToken();
+    error ZeroAmount();
 
     event Deposited(address indexed from, uint256 amount);
     event UnallocatedWithdrawn(uint256 amount);
@@ -165,9 +166,10 @@ contract Portfolio {
     /**
      * @notice Deposit tokens into the portfolio. Deposited funds become unallocated.
      * @dev Any caller. Requires prior approval of at least `amount` on the token contract.
-     * @param amount The number of tokens to deposit.
+     * @param amount The number of tokens to deposit (must be greater than zero).
      */
     function deposit(uint256 amount) external {
+        if (amount == 0) revert ZeroAmount();
         IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
         emit Deposited(msg.sender, amount);
     }
