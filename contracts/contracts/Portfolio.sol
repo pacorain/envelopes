@@ -44,6 +44,9 @@ contract Portfolio {
     error EnvelopeNotFound();
     error EnvelopeNotEmpty();
     error SameEnvelope();
+    error NoPendingAdminProposal();
+    error NotAManager();
+    error CannotRescuePrimaryToken();
 
     event Deposited(address indexed from, uint256 amount);
     event UnallocatedWithdrawn(uint256 amount);
@@ -99,8 +102,10 @@ contract Portfolio {
     /**
      * @notice Cancel a pending admin transfer proposal.
      * @dev Admin only. Clears pendingAdmin so the proposed address can no longer accept.
+     *      Reverts if there is no pending proposal.
      */
     function cancelPendingAdmin() external onlyAdmin {
+        if (pendingAdmin == address(0)) revert NoPendingAdminProposal();
         address cancelled = pendingAdmin;
         pendingAdmin = address(0);
         emit AdminTransferCancelled(admin, cancelled);
@@ -147,11 +152,12 @@ contract Portfolio {
 
     /**
      * @notice Revoke the manager role from an address.
-     * @dev Admin only.
+     * @dev Admin only. Reverts on zero address or if the address is not currently a manager.
      * @param manager The address to revoke the manager role from.
      */
     function removeManager(address manager) external onlyAdmin {
-        if (!managers[manager]) return;
+        if (manager == address(0)) revert ZeroAddress();
+        if (!managers[manager]) revert NotAManager();
         managers[manager] = false;
         emit ManagerRemoved(manager);
     }
@@ -232,12 +238,13 @@ contract Portfolio {
      * @param to     Index of the destination envelope.
      * @param amount The number of tokens to move.
      */
+    // slither-disable-next-line reentrancy-events
     function moveFunds(uint256 from, uint256 to, uint256 amount) external onlyManager {
         if (from == to) revert SameEnvelope();
         address fromAddr = _getEnvelope(from);
         address toAddr = _getEnvelope(to);
-        emit FundsMoved(from, to, amount);
         Envelope(payable(fromAddr)).sendFunds(toAddr, amount);
+        emit FundsMoved(from, to, amount);
     }
 
     /**
@@ -246,10 +253,11 @@ contract Portfolio {
      * @param index  The index of the envelope to withdraw from.
      * @param amount The number of tokens to withdraw.
      */
+    // slither-disable-next-line reentrancy-events
     function withdrawFromEnvelope(uint256 index, uint256 amount) external onlyManager {
         address envelopeAddr = _getEnvelope(index);
-        emit EnvelopeWithdrawn(index, amount);
         Envelope(payable(envelopeAddr)).sendFunds(withdrawalAddress, amount);
+        emit EnvelopeWithdrawn(index, amount);
     }
 
     /**
@@ -260,10 +268,13 @@ contract Portfolio {
      * @param rescueToken_ The ERC-20 token to recover (must not be the primary token).
      * @param amount      Amount to transfer.
      */
+    // slither-disable-next-line reentrancy-events
     function rescueTokenFromEnvelope(uint256 index, address rescueToken_, uint256 amount) external onlyAdmin {
+        if (rescueToken_ == address(0)) revert ZeroAddress();
+        if (rescueToken_ == token) revert CannotRescuePrimaryToken();
         address envelopeAddr = _getEnvelope(index);
-        emit TokenRescued(index, rescueToken_, amount);
         Envelope(payable(envelopeAddr)).rescueToken(IERC20(rescueToken_), withdrawalAddress, amount);
+        emit TokenRescued(index, rescueToken_, amount);
     }
 
     /// @dev Reject ETH transfers — this contract is ERC-20 only.

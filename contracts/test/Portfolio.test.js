@@ -192,6 +192,13 @@ describe("Portfolio", function () {
       ).to.be.revertedWithCustomError(portfolio, "OnlyAdmin");
     });
 
+    it("reverts when there is no pending proposal", async function () {
+      await portfolio.connect(admin).cancelPendingAdmin();
+      await expect(
+        portfolio.connect(admin).cancelPendingAdmin()
+      ).to.be.revertedWithCustomError(portfolio, "NoPendingAdminProposal");
+    });
+
     it("acceptAdmin() reverts after cancelPendingAdmin() is called", async function () {
       await portfolio.connect(admin).cancelPendingAdmin();
       await expect(
@@ -253,10 +260,17 @@ describe("Portfolio", function () {
       ).to.be.revertedWithCustomError(portfolio, "OnlyAdmin");
     });
 
-    it("does not emit ManagerRemoved if address was not a manager", async function () {
-      const [, , thirdAccount] = await ethers.getSigners();
-      await expect(portfolio.connect(admin).removeManager(thirdAccount.address))
-        .to.not.emit(portfolio, "ManagerRemoved");
+    it("reverts for zero address", async function () {
+      await expect(
+        portfolio.connect(admin).removeManager(ZeroAddress)
+      ).to.be.revertedWithCustomError(portfolio, "ZeroAddress");
+    });
+
+    it("reverts when address is not a manager", async function () {
+      const [, , nonManager] = await ethers.getSigners();
+      await expect(
+        portfolio.connect(admin).removeManager(nonManager.address)
+      ).to.be.revertedWithCustomError(portfolio, "NotAManager");
     });
   });
 
@@ -637,6 +651,15 @@ describe("Portfolio", function () {
       ).to.be.revertedWithCustomError(portfolio, "EnvelopeNotFound");
     });
 
+    it("reverts for deleted destination envelope", async function () {
+      // drain envelope 1 so it can be deleted, then attempt to move into it
+      await portfolio.connect(admin).createEnvelope(encodeBytes32String("temp"));
+      await portfolio.connect(admin).deleteEnvelope(2);
+      await expect(
+        portfolio.connect(admin).moveFunds(0, 2, AMOUNT)
+      ).to.be.revertedWithCustomError(portfolio, "EnvelopeNotFound");
+    });
+
     it("reverts when called by a non-manager", async function () {
       const [, , stranger] = await ethers.getSigners();
       await expect(
@@ -685,6 +708,16 @@ describe("Portfolio", function () {
       const before = await token.balanceOf(thirdAccount.address);
       await portfolio.connect(admin).withdrawFromEnvelope(0, AMOUNT);
       expect(await token.balanceOf(thirdAccount.address)).to.equal(before);
+    });
+
+    it("manager withdrawal also sends only to withdrawalAddress", async function () {
+      await portfolio.connect(admin).addManager(otherAccount.address);
+      const [, , thirdAccount] = await ethers.getSigners();
+      const beforeWithdrawal = await token.balanceOf(withdrawalAddress);
+      const beforeThird = await token.balanceOf(thirdAccount.address);
+      await portfolio.connect(otherAccount).withdrawFromEnvelope(0, AMOUNT);
+      expect(await token.balanceOf(withdrawalAddress)).to.equal(beforeWithdrawal + AMOUNT);
+      expect(await token.balanceOf(thirdAccount.address)).to.equal(beforeThird);
     });
 
     it("reverts for invalid envelope index", async function () {
@@ -748,13 +781,9 @@ describe("Portfolio", function () {
     });
 
     it("reverts when trying to rescue the primary token", async function () {
-      await token.mint(await portfolio.envelopes(0), AMOUNT);
       await expect(
         portfolio.connect(admin).rescueTokenFromEnvelope(0, await token.getAddress(), AMOUNT)
-      ).to.be.revertedWithCustomError(
-        { interface: (await ethers.getContractFactory("Envelope")).interface },
-        "CannotRescuePrimaryToken"
-      );
+      ).to.be.revertedWithCustomError(portfolio, "CannotRescuePrimaryToken");
     });
 
     it("reverts for invalid envelope index", async function () {
@@ -767,6 +796,12 @@ describe("Portfolio", function () {
       await expect(
         portfolio.connect(otherAccount).rescueTokenFromEnvelope(0, await strayToken.getAddress(), AMOUNT)
       ).to.be.revertedWithCustomError(portfolio, "OnlyAdmin");
+    });
+
+    it("reverts for zero-address token", async function () {
+      await expect(
+        portfolio.connect(admin).rescueTokenFromEnvelope(0, ZeroAddress, AMOUNT)
+      ).to.be.revertedWithCustomError(portfolio, "ZeroAddress");
     });
 
     it("funds land at withdrawalAddress, not an arbitrary address", async function () {
