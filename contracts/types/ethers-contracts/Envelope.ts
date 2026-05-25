@@ -3,12 +3,12 @@
 /* eslint-disable */
 import type { BaseContract, BigNumberish, BytesLike, FunctionFragment, Result, Interface, AddressLike, ContractRunner, ContractMethod, Listener } from "ethers"
 import type { TypedContractEvent, TypedDeferredTopicFilter, TypedEventLog, TypedListener, TypedContractMethod } from "./common.js"
-
+  
 
   export interface EnvelopeInterface extends Interface {
     getFunction(nameOrSignature: "balance" | "name" | "portfolio" | "rescueToken" | "sendFunds" | "token"): FunctionFragment;
 
-
+    
 
     encodeFunctionData(functionFragment: 'balance', values?: undefined): string;
 encodeFunctionData(functionFragment: 'name', values?: undefined): string;
@@ -25,16 +25,16 @@ decodeFunctionResult(functionFragment: 'sendFunds', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'token', data: BytesLike): Result;
   }
 
-
+  
 
   export interface Envelope extends BaseContract {
-
+    
     connect(runner?: ContractRunner | null): Envelope;
     waitForDeployment(): Promise<this>;
 
     interface: EnvelopeInterface;
 
-
+    
   queryFilter<TCEvent extends TypedContractEvent>(
     event: TCEvent,
     fromBlockOrBlockhash?: string | number | undefined,
@@ -48,7 +48,7 @@ decodeFunctionResult(functionFragment: 'token', data: BytesLike): Result;
 
   on<TCEvent extends TypedContractEvent>(event: TCEvent, listener: TypedListener<TCEvent>): Promise<this>
   on<TCEvent extends TypedContractEvent>(filter: TypedDeferredTopicFilter<TCEvent>, listener: TypedListener<TCEvent>): Promise<this>
-
+  
   once<TCEvent extends TypedContractEvent>(event: TCEvent, listener: TypedListener<TCEvent>): Promise<this>
   once<TCEvent extends TypedContractEvent>(filter: TypedDeferredTopicFilter<TCEvent>, listener: TypedListener<TCEvent>): Promise<this>
 
@@ -59,54 +59,54 @@ decodeFunctionResult(functionFragment: 'token', data: BytesLike): Result;
   removeAllListeners<TCEvent extends TypedContractEvent>(event?: TCEvent): Promise<this>
 
 
-
-
+    
+    
     balance: TypedContractMethod<
       [],
       [bigint],
       'view'
     >
+    
 
-
-
+    
     name: TypedContractMethod<
       [],
       [string],
       'view'
     >
+    
 
-
-
+    
     portfolio: TypedContractMethod<
       [],
       [string],
       'view'
     >
+    
 
-
-
+    
     rescueToken: TypedContractMethod<
       [rescueToken_: AddressLike, to: AddressLike, amount: BigNumberish, ],
       [void],
       'nonpayable'
     >
+    
 
-
-
+    
     sendFunds: TypedContractMethod<
       [to: AddressLike, amount: BigNumberish, ],
       [void],
       'nonpayable'
     >
+    
 
-
-
+    
     token: TypedContractMethod<
       [],
       [string],
       'view'
     >
-
+    
 
 
     getFunction<T extends ContractMethod = ContractMethod>(key: string | FunctionFragment): T;
@@ -142,9 +142,9 @@ getFunction(nameOrSignature: 'token'): TypedContractMethod<
       'view'
     >;
 
-
+    
 
     filters: {
-
+      
     };
   }

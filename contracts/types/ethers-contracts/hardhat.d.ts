@@ -52,3 +52,4 @@ deployContract(name: 'MockERC20', args: any[], signerOrOptions?: ethers.Signer |
     ): Promise<ethers.Contract>;
   }
 }
+  

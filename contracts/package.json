@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "hardhat test",
+    "pretest": "node scripts/setup-solc-cache.mjs",
     "compile": "hardhat compile",
     "deploy": "hardhat run scripts/deploy.js"
   },
@@ -16,6 +17,7 @@
     "@nomicfoundation/hardhat-toolbox-mocha-ethers": "^3.0.3",
     "@openzeppelin/contracts": "^5.6.1",
     "ethers": "^6.16.0",
-    "hardhat": "^3.3.0"
+    "hardhat": "^3.3.0",
+    "solc": "0.8.34"
   }
 }

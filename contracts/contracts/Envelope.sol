@@ -43,6 +43,7 @@ contract Envelope {
 
     constructor(address portfolio_, IERC20 token_, bytes32 name_) {
         if (portfolio_ == address(0)) revert ZeroAddress();
+        if (address(token_) == address(0)) revert ZeroAddress();
         portfolio = portfolio_;
         token = token_;
         name = name_;
@@ -70,7 +71,7 @@ contract Envelope {
      */
     // slither-disable-next-line arbitrary-send-erc20
     function rescueToken(IERC20 rescueToken_, address to, uint256 amount) external onlyPortfolio {
-        if (rescueToken_ == token) revert CannotRescuePrimaryToken();
+        if (address(rescueToken_) == address(token)) revert CannotRescuePrimaryToken();
         rescueToken_.safeTransfer(to, amount);
     }
 

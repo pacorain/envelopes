@@ -3,7 +3,7 @@
 /* eslint-disable */
 import type { BaseContract, BigNumberish, BytesLike, FunctionFragment, Result, Interface, EventFragment, AddressLike, ContractRunner, ContractMethod, Listener } from "ethers"
 import type { TypedContractEvent, TypedDeferredTopicFilter, TypedEventLog, TypedLogDescription, TypedListener, TypedContractMethod } from "./common.js"
-
+  
 
   export interface PortfolioInterface extends Interface {
     getFunction(nameOrSignature: "acceptAdmin" | "addManager" | "admin" | "allocate" | "cancelPendingAdmin" | "createEnvelope" | "deleteEnvelope" | "deposit" | "envelopes" | "managers" | "moveFunds" | "pendingAdmin" | "proposeAdmin" | "removeManager" | "rescueTokenFromEnvelope" | "setWithdrawalAddress" | "token" | "unallocated" | "withdrawFromEnvelope" | "withdrawUnallocated" | "withdrawalAddress"): FunctionFragment;
@@ -55,7 +55,7 @@ decodeFunctionResult(functionFragment: 'withdrawUnallocated', data: BytesLike): 
 decodeFunctionResult(functionFragment: 'withdrawalAddress', data: BytesLike): Result;
   }
 
-
+  
     export namespace AdminTransferCancelledEvent {
       export type InputTuple = [admin: AddressLike, cancelledPendingAdmin: AddressLike];
       export type OutputTuple = [admin: string, cancelledPendingAdmin: string];
@@ -66,7 +66,7 @@ decodeFunctionResult(functionFragment: 'withdrawalAddress', data: BytesLike): Re
       export type LogDescription = TypedLogDescription<Event>
     }
 
-
+  
 
     export namespace AdminTransferProposedEvent {
       export type InputTuple = [currentAdmin: AddressLike, proposedAdmin: AddressLike];
@@ -78,7 +78,7 @@ decodeFunctionResult(functionFragment: 'withdrawalAddress', data: BytesLike): Re
       export type LogDescription = TypedLogDescription<Event>
     }
 
-
+  
 
     export namespace AdminTransferredEvent {
       export type InputTuple = [previousAdmin: AddressLike, newAdmin: AddressLike];
@@ -90,7 +90,7 @@ decodeFunctionResult(functionFragment: 'withdrawalAddress', data: BytesLike): Re
       export type LogDescription = TypedLogDescription<Event>
     }
 
-
+  
 
     export namespace AllocatedEvent {
       export type InputTuple = [index: BigNumberish, amount: BigNumberish];
@@ -102,7 +102,7 @@ decodeFunctionResult(functionFragment: 'withdrawalAddress', data: BytesLike): Re
       export type LogDescription = TypedLogDescription<Event>
     }
 
-
+  
 
     export namespace DepositedEvent {
       export type InputTuple = [from: AddressLike, amount: BigNumberish];
@@ -114,7 +114,7 @@ decodeFunctionResult(functionFragment: 'withdrawalAddress', data: BytesLike): Re
       export type LogDescription = TypedLogDescription<Event>
     }
 
-
+  
 
     export namespace EnvelopeCreatedEvent {
       export type InputTuple = [index: BigNumberish, envelope: AddressLike, name: BytesLike];
@@ -126,7 +126,7 @@ decodeFunctionResult(functionFragment: 'withdrawalAddress', data: BytesLike): Re
       export type LogDescription = TypedLogDescription<Event>
     }
 
-
+  
 
     export namespace EnvelopeDeletedEvent {
       export type InputTuple = [index: BigNumberish];
@@ -138,7 +138,7 @@ decodeFunctionResult(functionFragment: 'withdrawalAddress', data: BytesLike): Re
       export type LogDescription = TypedLogDescription<Event>
     }
 
-
+  
 
     export namespace EnvelopeWithdrawnEvent {
       export type InputTuple = [index: BigNumberish, amount: BigNumberish];
@@ -150,7 +150,7 @@ decodeFunctionResult(functionFragment: 'withdrawalAddress', data: BytesLike): Re
       export type LogDescription = TypedLogDescription<Event>
     }
 
-
+  
 
     export namespace FundsMovedEvent {
       export type InputTuple = [from: BigNumberish, to: BigNumberish, amount: BigNumberish];
@@ -162,7 +162,7 @@ decodeFunctionResult(functionFragment: 'withdrawalAddress', data: BytesLike): Re
       export type LogDescription = TypedLogDescription<Event>
     }
 
-
+  
 
     export namespace ManagerAddedEvent {
       export type InputTuple = [manager: AddressLike];
@@ -174,7 +174,7 @@ decodeFunctionResult(functionFragment: 'withdrawalAddress', data: BytesLike): Re
       export type LogDescription = TypedLogDescription<Event>
     }
 
-
+  
 
     export namespace ManagerRemovedEvent {
       export type InputTuple = [manager: AddressLike];
@@ -186,7 +186,7 @@ decodeFunctionResult(functionFragment: 'withdrawalAddress', data: BytesLike): Re
       export type LogDescription = TypedLogDescription<Event>
     }
 
-
+  
 
     export namespace TokenRescuedEvent {
       export type InputTuple = [index: BigNumberish, rescueToken: AddressLike, amount: BigNumberish];
@@ -198,7 +198,7 @@ decodeFunctionResult(functionFragment: 'withdrawalAddress', data: BytesLike): Re
       export type LogDescription = TypedLogDescription<Event>
     }
 
-
+  
 
     export namespace UnallocatedWithdrawnEvent {
       export type InputTuple = [amount: BigNumberish];
@@ -210,7 +210,7 @@ decodeFunctionResult(functionFragment: 'withdrawalAddress', data: BytesLike): Re
       export type LogDescription = TypedLogDescription<Event>
     }
 
-
+  
 
     export namespace WithdrawalAddressSetEvent {
       export type InputTuple = [newWithdrawalAddress: AddressLike];
@@ -222,16 +222,16 @@ decodeFunctionResult(functionFragment: 'withdrawalAddress', data: BytesLike): Re
       export type LogDescription = TypedLogDescription<Event>
     }
 
-
+  
 
   export interface Portfolio extends BaseContract {
-
+    
     connect(runner?: ContractRunner | null): Portfolio;
     waitForDeployment(): Promise<this>;
 
     interface: PortfolioInterface;
 
-
+    
   queryFilter<TCEvent extends TypedContractEvent>(
     event: TCEvent,
     fromBlockOrBlockhash?: string | number | undefined,
@@ -245,7 +245,7 @@ decodeFunctionResult(functionFragment: 'withdrawalAddress', data: BytesLike): Re
 
   on<TCEvent extends TypedContractEvent>(event: TCEvent, listener: TypedListener<TCEvent>): Promise<this>
   on<TCEvent extends TypedContractEvent>(filter: TypedDeferredTopicFilter<TCEvent>, listener: TypedListener<TCEvent>): Promise<this>
-
+  
   once<TCEvent extends TypedContractEvent>(event: TCEvent, listener: TypedListener<TCEvent>): Promise<this>
   once<TCEvent extends TypedContractEvent>(filter: TypedDeferredTopicFilter<TCEvent>, listener: TypedListener<TCEvent>): Promise<this>
 
@@ -256,174 +256,174 @@ decodeFunctionResult(functionFragment: 'withdrawalAddress', data: BytesLike): Re
   removeAllListeners<TCEvent extends TypedContractEvent>(event?: TCEvent): Promise<this>
 
 
-
-
+    
+    
     acceptAdmin: TypedContractMethod<
       [],
       [void],
       'nonpayable'
     >
+    
 
-
-
+    
     addManager: TypedContractMethod<
       [manager: AddressLike, ],
       [void],
       'nonpayable'
     >
+    
 
-
-
+    
     admin: TypedContractMethod<
       [],
       [string],
       'view'
     >
+    
 
-
-
+    
     allocate: TypedContractMethod<
       [index: BigNumberish, amount: BigNumberish, ],
       [void],
       'nonpayable'
     >
+    
 
-
-
+    
     cancelPendingAdmin: TypedContractMethod<
       [],
       [void],
       'nonpayable'
     >
+    
 
-
-
+    
     createEnvelope: TypedContractMethod<
       [name: BytesLike, ],
       [bigint],
       'nonpayable'
     >
+    
 
-
-
+    
     deleteEnvelope: TypedContractMethod<
       [index: BigNumberish, ],
       [void],
       'nonpayable'
     >
+    
 
-
-
+    
     deposit: TypedContractMethod<
       [amount: BigNumberish, ],
       [void],
       'nonpayable'
     >
+    
 
-
-
+    
     envelopes: TypedContractMethod<
       [arg0: BigNumberish, ],
       [string],
       'view'
     >
+    
 
-
-
+    
     managers: TypedContractMethod<
       [arg0: AddressLike, ],
       [boolean],
       'view'
     >
+    
 
-
-
+    
     moveFunds: TypedContractMethod<
       [from: BigNumberish, to: BigNumberish, amount: BigNumberish, ],
       [void],
       'nonpayable'
     >
+    
 
-
-
+    
     pendingAdmin: TypedContractMethod<
       [],
       [string],
       'view'
     >
+    
 
-
-
+    
     proposeAdmin: TypedContractMethod<
       [newAdmin: AddressLike, ],
       [void],
       'nonpayable'
     >
+    
 
-
-
+    
     removeManager: TypedContractMethod<
       [manager: AddressLike, ],
       [void],
       'nonpayable'
     >
+    
 
-
-
+    
     rescueTokenFromEnvelope: TypedContractMethod<
       [index: BigNumberish, rescueToken_: AddressLike, amount: BigNumberish, ],
       [void],
       'nonpayable'
     >
+    
 
-
-
+    
     setWithdrawalAddress: TypedContractMethod<
       [newWithdrawalAddress: AddressLike, ],
       [void],
       'nonpayable'
     >
+    
 
-
-
+    
     token: TypedContractMethod<
       [],
       [string],
       'view'
     >
+    
 
-
-
+    
     unallocated: TypedContractMethod<
       [],
       [bigint],
       'view'
     >
+    
 
-
-
+    
     withdrawFromEnvelope: TypedContractMethod<
       [index: BigNumberish, amount: BigNumberish, ],
       [void],
       'nonpayable'
     >
+    
 
-
-
+    
     withdrawUnallocated: TypedContractMethod<
       [amount: BigNumberish, ],
       [void],
       'nonpayable'
     >
+    
 
-
-
+    
     withdrawalAddress: TypedContractMethod<
       [],
       [string],
       'view'
     >
-
+    
 
 
     getFunction<T extends ContractMethod = ContractMethod>(key: string | FunctionFragment): T;
@@ -550,61 +550,61 @@ getEvent(key: 'UnallocatedWithdrawn'): TypedContractEvent<UnallocatedWithdrawnEv
 getEvent(key: 'WithdrawalAddressSet'): TypedContractEvent<WithdrawalAddressSetEvent.InputTuple, WithdrawalAddressSetEvent.OutputTuple, WithdrawalAddressSetEvent.OutputObject>;
 
     filters: {
-
+      
       'AdminTransferCancelled(address,address)': TypedContractEvent<AdminTransferCancelledEvent.InputTuple, AdminTransferCancelledEvent.OutputTuple, AdminTransferCancelledEvent.OutputObject>;
       AdminTransferCancelled: TypedContractEvent<AdminTransferCancelledEvent.InputTuple, AdminTransferCancelledEvent.OutputTuple, AdminTransferCancelledEvent.OutputObject>;
-
+    
 
       'AdminTransferProposed(address,address)': TypedContractEvent<AdminTransferProposedEvent.InputTuple, AdminTransferProposedEvent.OutputTuple, AdminTransferProposedEvent.OutputObject>;
       AdminTransferProposed: TypedContractEvent<AdminTransferProposedEvent.InputTuple, AdminTransferProposedEvent.OutputTuple, AdminTransferProposedEvent.OutputObject>;
-
+    
 
       'AdminTransferred(address,address)': TypedContractEvent<AdminTransferredEvent.InputTuple, AdminTransferredEvent.OutputTuple, AdminTransferredEvent.OutputObject>;
       AdminTransferred: TypedContractEvent<AdminTransferredEvent.InputTuple, AdminTransferredEvent.OutputTuple, AdminTransferredEvent.OutputObject>;
-
+    
 
       'Allocated(uint256,uint256)': TypedContractEvent<AllocatedEvent.InputTuple, AllocatedEvent.OutputTuple, AllocatedEvent.OutputObject>;
       Allocated: TypedContractEvent<AllocatedEvent.InputTuple, AllocatedEvent.OutputTuple, AllocatedEvent.OutputObject>;
-
+    
 
       'Deposited(address,uint256)': TypedContractEvent<DepositedEvent.InputTuple, DepositedEvent.OutputTuple, DepositedEvent.OutputObject>;
       Deposited: TypedContractEvent<DepositedEvent.InputTuple, DepositedEvent.OutputTuple, DepositedEvent.OutputObject>;
-
+    
 
       'EnvelopeCreated(uint256,address,bytes32)': TypedContractEvent<EnvelopeCreatedEvent.InputTuple, EnvelopeCreatedEvent.OutputTuple, EnvelopeCreatedEvent.OutputObject>;
       EnvelopeCreated: TypedContractEvent<EnvelopeCreatedEvent.InputTuple, EnvelopeCreatedEvent.OutputTuple, EnvelopeCreatedEvent.OutputObject>;
-
+    
 
       'EnvelopeDeleted(uint256)': TypedContractEvent<EnvelopeDeletedEvent.InputTuple, EnvelopeDeletedEvent.OutputTuple, EnvelopeDeletedEvent.OutputObject>;
       EnvelopeDeleted: TypedContractEvent<EnvelopeDeletedEvent.InputTuple, EnvelopeDeletedEvent.OutputTuple, EnvelopeDeletedEvent.OutputObject>;
-
+    
 
       'EnvelopeWithdrawn(uint256,uint256)': TypedContractEvent<EnvelopeWithdrawnEvent.InputTuple, EnvelopeWithdrawnEvent.OutputTuple, EnvelopeWithdrawnEvent.OutputObject>;
       EnvelopeWithdrawn: TypedContractEvent<EnvelopeWithdrawnEvent.InputTuple, EnvelopeWithdrawnEvent.OutputTuple, EnvelopeWithdrawnEvent.OutputObject>;
-
+    
 
       'FundsMoved(uint256,uint256,uint256)': TypedContractEvent<FundsMovedEvent.InputTuple, FundsMovedEvent.OutputTuple, FundsMovedEvent.OutputObject>;
       FundsMoved: TypedContractEvent<FundsMovedEvent.InputTuple, FundsMovedEvent.OutputTuple, FundsMovedEvent.OutputObject>;
-
+    
 
       'ManagerAdded(address)': TypedContractEvent<ManagerAddedEvent.InputTuple, ManagerAddedEvent.OutputTuple, ManagerAddedEvent.OutputObject>;
       ManagerAdded: TypedContractEvent<ManagerAddedEvent.InputTuple, ManagerAddedEvent.OutputTuple, ManagerAddedEvent.OutputObject>;
-
+    
 
       'ManagerRemoved(address)': TypedContractEvent<ManagerRemovedEvent.InputTuple, ManagerRemovedEvent.OutputTuple, ManagerRemovedEvent.OutputObject>;
       ManagerRemoved: TypedContractEvent<ManagerRemovedEvent.InputTuple, ManagerRemovedEvent.OutputTuple, ManagerRemovedEvent.OutputObject>;
-
+    
 
       'TokenRescued(uint256,address,uint256)': TypedContractEvent<TokenRescuedEvent.InputTuple, TokenRescuedEvent.OutputTuple, TokenRescuedEvent.OutputObject>;
       TokenRescued: TypedContractEvent<TokenRescuedEvent.InputTuple, TokenRescuedEvent.OutputTuple, TokenRescuedEvent.OutputObject>;
-
+    
 
       'UnallocatedWithdrawn(uint256)': TypedContractEvent<UnallocatedWithdrawnEvent.InputTuple, UnallocatedWithdrawnEvent.OutputTuple, UnallocatedWithdrawnEvent.OutputObject>;
       UnallocatedWithdrawn: TypedContractEvent<UnallocatedWithdrawnEvent.InputTuple, UnallocatedWithdrawnEvent.OutputTuple, UnallocatedWithdrawnEvent.OutputObject>;
-
+    
 
       'WithdrawalAddressSet(address)': TypedContractEvent<WithdrawalAddressSetEvent.InputTuple, WithdrawalAddressSetEvent.OutputTuple, WithdrawalAddressSetEvent.OutputObject>;
       WithdrawalAddressSet: TypedContractEvent<WithdrawalAddressSetEvent.InputTuple, WithdrawalAddressSetEvent.OutputTuple, WithdrawalAddressSetEvent.OutputObject>;
-
+    
     };
   }
