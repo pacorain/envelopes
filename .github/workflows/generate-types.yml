@@ -1,0 +1,73 @@
+name: Regenerate TypeScript Types
+
+on:
+  push:
+    branches-ignore:
+      - main
+    paths:
+      - 'contracts/contracts/**'
+      - 'contracts/hardhat.config.js'
+      - 'contracts/package.json'
+      - 'contracts/package-lock.json'
+      - 'contracts/types/**'
+
+permissions:
+  contents: write
+
+jobs:
+  generate-types:
+    name: Generate TypeScript types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Cache Hardhat compiler
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/hardhat-nodejs
+          key: hardhat-compiler-${{ hashFiles('contracts/hardhat.config.js') }}
+
+      - name: Setup solc cache
+        working-directory: contracts
+        run: node scripts/setup-solc-cache.mjs
+
+      - name: Generate TypeScript types
+        working-directory: contracts
+        run: npx hardhat compile
+
+      - name: Check for type changes
+        id: diff
+        run: |
+          git add contracts/types/
+          if git diff --cached --quiet contracts/types/; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Detect regeneration loop
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          last_msg=$(git log -1 --pretty=%s)
+          if [[ "$last_msg" == "chore: regenerate TypeScript types" ]]; then
+            echo "Error: types still differ after a regeneration commit. This indicates non-deterministic type generation." >&2
+            git diff --cached contracts/types/ >&2
+            exit 1
+          fi
+
+      - name: Commit and push updated types
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: regenerate TypeScript types"
+          git push
