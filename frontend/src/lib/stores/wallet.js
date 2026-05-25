@@ -1,11 +1,20 @@
-import { writable, get } from 'svelte/store';
+import { writable, get, derived } from 'svelte/store';
 import { BrowserProvider } from 'ethers';
+
+// Base mainnet chain ID
+const BASE_CHAIN_ID = 8453;
 
 export const provider = writable(null);
 export const signer = writable(null);
 export const account = writable(null);
 export const chainId = writable(null);
 export const walletError = writable('');
+
+/** True when the wallet is connected to a chain other than Base mainnet. */
+export const wrongNetwork = derived(
+  chainId,
+  ($chainId) => $chainId !== null && $chainId !== BASE_CHAIN_ID,
+);
 
 function hasEthereum() {
   return typeof window !== 'undefined' && window.ethereum;
@@ -22,10 +31,14 @@ export async function connectWallet() {
     const accounts = await bp.send('eth_requestAccounts', []);
     const s = await bp.getSigner();
     const net = await bp.getNetwork();
+    const cid = Number(net.chainId);
     provider.set(bp);
     signer.set(s);
     account.set(accounts[0]);
-    chainId.set(Number(net.chainId));
+    chainId.set(cid);
+    if (cid !== BASE_CHAIN_ID) {
+      walletError.set(`Wrong network. Please switch to Base (chain ID ${BASE_CHAIN_ID}). You are on chain ${cid}.`);
+    }
   } catch (err) {
     walletError.set(err?.message ?? String(err));
   }
