@@ -20,27 +20,39 @@ jobs:
       security-events: write
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
+
       - run: npm ci
       - run: echo "$GITHUB_WORKSPACE/node_modules/.bin" >> $GITHUB_PATH
+
       - name: Cache Hardhat compiler
         uses: actions/cache@v4
         with:
           path: ~/.cache/hardhat-nodejs
           key: hardhat-compiler-${{ hashFiles('contracts/hardhat.config.js') }}
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Install Forge libraries
+        working-directory: contracts
+        run: |
+          forge install foundry-rs/forge-std --no-git
+          forge install OpenZeppelin/openzeppelin-contracts --no-git
+
       - uses: crytic/slither-action@v0.4.2
         id: slither
         with:
-          target: 'contracts/contracts/'
+          target: 'contracts/'
           solc-version: '0.8.34'
           slither-args: >-
             --checklist
             --markdown-root ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}/
-            --solc-remaps @openzeppelin/=node_modules/@openzeppelin/
-            --filter-paths node_modules
+            --filter-paths "node_modules,test,foundry,lib"
           sarif: results.sarif
           fail-on: high
 

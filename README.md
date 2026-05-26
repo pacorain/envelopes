@@ -218,6 +218,20 @@ This project aims to stay auditable, forkable, and self-hostable. The intended e
 
 ---
 
+## Is This Safe?
+
+**This project has not been audited.** See the caution notice at the top of this file.
+
+The contracts are designed with a clear security model:
+
+- A compromised **manager** wallet cannot drain funds to an attacker — it can only route funds to the pre-set withdrawal address.
+- A compromised **admin** key can result in full loss of funds. Use a hardware wallet or multisig for the admin role.
+- Funds can only leave the portfolio to one pre-approved address (the withdrawal address), set exclusively by the admin.
+
+For a full breakdown of what the system defends against, what it does not, and the assumptions it makes, see [THREAT_MODEL.md](THREAT_MODEL.md).
+
+---
+
 ## License
 
 All code is open-source under the MIT License. See [LICENSE](LICENSE) for details.

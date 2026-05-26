@@ -113,6 +113,23 @@ describe("Portfolio", function () {
         portfolio.connect(admin).proposeAdmin(ZeroAddress)
       ).to.be.revertedWithCustomError(portfolio, "ZeroAddress");
     });
+
+    it("emits AdminTransferCancelled for the old pending admin when overwriting a proposal", async function () {
+      const [, , thirdAccount] = await ethers.getSigners();
+      await portfolio.connect(admin).proposeAdmin(otherAccount.address);
+      await expect(portfolio.connect(admin).proposeAdmin(thirdAccount.address))
+        .to.emit(portfolio, "AdminTransferCancelled")
+        .withArgs(admin.address, otherAccount.address);
+    });
+
+    it("old pending admin cannot acceptAdmin() after proposal is overwritten", async function () {
+      const [, , thirdAccount] = await ethers.getSigners();
+      await portfolio.connect(admin).proposeAdmin(otherAccount.address);
+      await portfolio.connect(admin).proposeAdmin(thirdAccount.address);
+      await expect(
+        portfolio.connect(otherAccount).acceptAdmin()
+      ).to.be.revertedWithCustomError(portfolio, "OnlyPendingAdmin");
+    });
   });
 
   describe("acceptAdmin()", function () {
