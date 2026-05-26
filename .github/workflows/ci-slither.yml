@@ -36,13 +36,12 @@ jobs:
       - uses: crytic/slither-action@v0.4.2
         id: slither
         with:
-          target: 'contracts/contracts/'
+          target: 'contracts/'
           solc-version: '0.8.34'
           slither-args: >-
             --checklist
             --markdown-root ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}/
-            --solc-remaps @openzeppelin/=node_modules/@openzeppelin/
-            --filter-paths node_modules
+            --filter-paths "node_modules,contracts/test,contracts/foundry"
             --compile-force-framework hardhat
           sarif: results.sarif
           fail-on: high
