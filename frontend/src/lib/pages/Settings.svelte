@@ -1,6 +1,8 @@
 <script>
-  import { isAddress } from 'ethers';
+  import { isAddress, ContractFactory } from 'ethers';
   import { portfolioAddress, tokenAddress, DEFAULT_TOKEN_ADDRESS } from '../stores/settings.js';
+  import { signer, wrongNetwork } from '../stores/wallet.js';
+  import { PortfolioABI, PortfolioBytecode } from '../abi/Portfolio.js';
   import { NETWORK_NAME } from '../network.js';
 
   let portfolioInput = $state($portfolioAddress ?? '');
@@ -46,6 +48,46 @@
   function flashSaved() {
     saved = true;
     setTimeout(() => (saved = false), 2000);
+  }
+
+  // Deploy section
+  let withdrawalInput = $state('');
+  let deployError = $state('');
+  let deploying = $state(false);
+  let deployedAddress = $state('');
+
+  async function deployPortfolio() {
+    deployError = '';
+    deployedAddress = '';
+
+    const withdrawal = withdrawalInput.trim();
+    if (!withdrawal || !isAddress(withdrawal)) {
+      deployError = 'Enter a valid withdrawal address.';
+      return;
+    }
+    if (!$signer) {
+      deployError = 'Connect your wallet first.';
+      return;
+    }
+    if ($wrongNetwork) {
+      deployError = `Switch to ${NETWORK_NAME} before deploying.`;
+      return;
+    }
+
+    deploying = true;
+    try {
+      const factory = new ContractFactory(PortfolioABI, PortfolioBytecode, $signer);
+      const contract = await factory.deploy($tokenAddress, withdrawal);
+      await contract.waitForDeployment();
+      const addr = await contract.getAddress();
+      deployedAddress = addr;
+      portfolioAddress.set(addr);
+      portfolioInput = addr;
+    } catch (err) {
+      deployError = err?.reason ?? err?.message ?? String(err);
+    } finally {
+      deploying = false;
+    }
   }
 </script>
 
@@ -102,11 +144,39 @@
   <div class="group">
     <h2>Deploy a New Portfolio</h2>
     <p class="hint">
-      This will become available once <code>Portfolio.sol</code> is implemented and its bytecode is
-      bundled with the frontend. For now, deploy the contract from the <code>contracts/</code>
-      workspace and paste the address above.
+      Deploys a new <code>Portfolio.sol</code> contract from your connected wallet. The deploying
+      address becomes the admin. The withdrawal address is the only address funds can be sent to
+      outside the portfolio — set this to a wallet you control (e.g. your cold wallet).
     </p>
-    <button type="button" class="primary" disabled>Deploy Portfolio</button>
+    <div class="row">
+      <input
+        type="text"
+        placeholder="Withdrawal address (0x…)"
+        bind:value={withdrawalInput}
+        spellcheck="false"
+        autocomplete="off"
+        disabled={deploying}
+      />
+      <button
+        type="button"
+        class="primary"
+        onclick={deployPortfolio}
+        disabled={deploying || !$signer || $wrongNetwork}
+      >
+        {deploying ? 'Deploying…' : 'Deploy Portfolio'}
+      </button>
+    </div>
+    {#if !$signer}
+      <div class="hint muted">Connect your wallet to deploy.</div>
+    {:else if $wrongNetwork}
+      <div class="hint muted">Switch to {NETWORK_NAME} to deploy.</div>
+    {/if}
+    {#if deployError}<div class="err">{deployError}</div>{/if}
+    {#if deployedAddress}
+      <div class="current">
+        Deployed: <code>{deployedAddress}</code> — saved as your active portfolio.
+      </div>
+    {/if}
   </div>
 
   {#if saved}
@@ -204,6 +274,9 @@
     color: var(--text);
   }
   .current.muted {
+    font-style: italic;
+  }
+  .hint.muted {
     font-style: italic;
   }
   .current code {
