@@ -32,7 +32,8 @@ jobs:
       - run: npm run build -w frontend
         env:
           VITE_BASE: /envelopes/
-          VITE_NETWORK: mainnet
+          # Uncomment to deploy to mainnet
+          # VITE_NETWORK: mainnet
       - uses: actions/upload-pages-artifact@v3
         with:
           path: frontend/dist
