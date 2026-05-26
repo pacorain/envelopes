@@ -1,10 +1,11 @@
 import { writable } from 'svelte/store';
+import { DEFAULT_USDC_ADDRESS } from '../network.js';
 
 const PORTFOLIO_KEY = 'envelope.portfolioAddress';
 const TOKEN_KEY = 'envelope.tokenAddress';
 
-// USDC on Base mainnet — verified constant from README.
-export const DEFAULT_TOKEN_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+// USDC address for the configured network (Base Sepolia by default; mainnet when VITE_NETWORK=mainnet).
+export const DEFAULT_TOKEN_ADDRESS = DEFAULT_USDC_ADDRESS;
 
 function persistedStore(key, initial) {
   const stored = typeof localStorage !== 'undefined' ? localStorage.getItem(key) : null;

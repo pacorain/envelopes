@@ -5,6 +5,7 @@
   import AdminPage from './lib/pages/Admin.svelte';
   import SettingsPage from './lib/pages/Settings.svelte';
   import { initWalletListeners } from './lib/stores/wallet.js';
+  import { isTestnet } from './lib/network.js';
 
   const BANNER_KEY = 'disclaimer_dismissed_at';
   const BANNER_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -35,6 +36,7 @@
     <div class="disclaimer-banner" role="alert">
       <span class="disclaimer-icon">⚠</span>
       <span class="disclaimer-text">
+        {#if isTestnet}<strong>Testnet mode</strong> —{/if}
         This project is in development and has not been audited. Contract discrepancies may exist and use may result in loss of funds.
         <a href="https://github.com/pacorain/envelopes" target="_blank" rel="noopener noreferrer">Learn more</a>
       </span>
