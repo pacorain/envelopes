@@ -6,6 +6,9 @@
 
 const isMainnet = import.meta.env.VITE_NETWORK === 'mainnet';
 
+/** True when running against a testnet (i.e. not mainnet). */
+export const isTestnet = !isMainnet;
+
 /** Expected chain ID. 84532 = Base Sepolia (default), 8453 = Base Mainnet. */
 export const EXPECTED_CHAIN_ID = isMainnet ? 8453 : 84532;
 
