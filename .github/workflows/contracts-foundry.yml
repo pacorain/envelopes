@@ -26,8 +26,7 @@ jobs:
           cache: 'npm'
 
       - name: Install npm dependencies (provides @openzeppelin)
-        working-directory: contracts
-        run: npm install --install-strategy=nested
+        run: npm ci
 
       - name: Install forge-std
         working-directory: contracts
