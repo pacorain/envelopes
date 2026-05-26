@@ -31,6 +31,8 @@ jobs:
         with:
           path: ~/.cache/hardhat-nodejs
           key: hardhat-compiler-${{ hashFiles('contracts/hardhat.config.js') }}
+      - name: Compile contracts
+        run: npm run compile -w contracts
       - uses: crytic/slither-action@v0.4.2
         id: slither
         with:
