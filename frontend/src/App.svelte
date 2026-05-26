@@ -5,6 +5,9 @@
   import AdminPage from './lib/pages/Admin.svelte';
   import SettingsPage from './lib/pages/Settings.svelte';
   import { initWalletListeners } from './lib/stores/wallet.js';
+  import { NETWORK_NAME } from './lib/network.js';
+
+  const isTestnet = import.meta.env.VITE_NETWORK !== 'mainnet';
 
   const BANNER_KEY = 'disclaimer_dismissed_at';
   const BANNER_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -42,6 +45,11 @@
     </div>
   {/if}
   <Nav {currentPage} />
+  {#if isTestnet}
+    <div class="testnet-banner" role="status">
+      <strong>Testnet mode</strong> — connected to {NETWORK_NAME}. Transactions use test funds only.
+    </div>
+  {/if}
   <main>
     {#if currentPage === '#/admin'}
       <AdminPage />
@@ -116,6 +124,13 @@
     .dismiss-btn:hover {
       background: rgba(255, 255, 255, 0.1);
     }
+  }
+  .testnet-banner {
+    background: #92400e;
+    color: #fef3c7;
+    text-align: center;
+    padding: 6px 16px;
+    font-size: 14px;
   }
   .app-footer {
     display: flex;
