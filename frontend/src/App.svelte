@@ -6,7 +6,8 @@
   import SettingsPage from './lib/pages/Settings.svelte';
   import { initWalletListeners } from './lib/stores/wallet.js';
 
-  const BANNER_KEY = 'disclaimer_dismissed';
+  const BANNER_KEY = 'disclaimer_dismissed_at';
+  const BANNER_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
   let currentPage = $state(window.location.hash || '#/');
   let bannerDismissed = $state(false);
@@ -17,11 +18,12 @@
 
   function dismissBanner() {
     bannerDismissed = true;
-    localStorage.setItem(BANNER_KEY, '1');
+    localStorage.setItem(BANNER_KEY, Date.now().toString());
   }
 
   onMount(() => {
-    bannerDismissed = localStorage.getItem(BANNER_KEY) === '1';
+    const dismissedAt = localStorage.getItem(BANNER_KEY);
+    bannerDismissed = dismissedAt !== null && Date.now() - Number(dismissedAt) < BANNER_TTL_MS;
     initWalletListeners();
     window.addEventListener('hashchange', syncHash);
     return () => window.removeEventListener('hashchange', syncHash);
@@ -49,6 +51,11 @@
       <PortfolioPage />
     {/if}
   </main>
+  <footer class="app-footer">
+    <a href="https://github.com/pacorain/envelopes/blob/main/README.md" target="_blank" rel="noopener noreferrer">README</a>
+    <span class="footer-sep">·</span>
+    <a href="https://github.com/pacorain/envelopes" target="_blank" rel="noopener noreferrer">GitHub</a>
+  </footer>
 </div>
 
 <style>
@@ -108,6 +115,32 @@
   @media (prefers-color-scheme: dark) {
     .dismiss-btn:hover {
       background: rgba(255, 255, 255, 0.1);
+    }
+  }
+  .app-footer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    font-size: 12px;
+    color: #888;
+  }
+  .app-footer a {
+    color: inherit;
+    text-decoration: none;
+  }
+  .app-footer a:hover {
+    text-decoration: underline;
+  }
+  .footer-sep {
+    opacity: 0.5;
+  }
+  @media (prefers-color-scheme: dark) {
+    .app-footer {
+      border-top-color: rgba(255, 255, 255, 0.08);
+      color: #666;
     }
   }
 </style>
