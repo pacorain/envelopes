@@ -1,0 +1,37 @@
+name: Foundry Invariant Tests
+
+on:
+  pull_request:
+    paths:
+      - 'contracts/**'
+  push:
+    branches:
+      - main
+    paths:
+      - 'contracts/**'
+
+jobs:
+  foundry-invariant:
+    name: Run Foundry invariant tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install npm dependencies (provides @openzeppelin)
+        run: npm ci
+
+      - name: Install forge-std
+        working-directory: contracts
+        run: forge install foundry-rs/forge-std --no-git
+
+      - name: Run invariant tests
+        working-directory: contracts
+        run: forge test -vvv
