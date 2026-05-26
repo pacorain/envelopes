@@ -27,7 +27,7 @@ jobs:
 
       - name: Install npm dependencies (provides @openzeppelin)
         working-directory: contracts
-        run: npm install
+        run: npm install --install-strategy=nested
 
       - name: Install forge-std
         working-directory: contracts
