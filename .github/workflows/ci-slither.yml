@@ -26,8 +26,6 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: echo "$GITHUB_WORKSPACE/node_modules/.bin" >> $GITHUB_PATH
-      - name: Symlink root node_modules into contracts/ for Foundry remapping
-        run: ln -sf ../node_modules contracts/node_modules
       - name: Cache Hardhat compiler
         uses: actions/cache@v4
         with:
@@ -36,12 +34,14 @@ jobs:
       - uses: crytic/slither-action@v0.4.2
         id: slither
         with:
-          target: 'contracts/'
+          target: 'contracts/contracts/'
           solc-version: '0.8.34'
           slither-args: >-
             --checklist
             --markdown-root ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}/
-            --filter-paths "node_modules,test,foundry"
+            --compile-force-framework solc
+            --solc-remaps "@openzeppelin/=${{ github.workspace }}/node_modules/@openzeppelin/"
+            --filter-paths node_modules
           sarif: results.sarif
           fail-on: high
 

@@ -28,9 +28,6 @@ jobs:
       - name: Install npm dependencies (provides @openzeppelin)
         run: npm ci
 
-      - name: Symlink root node_modules into contracts/ for Foundry remapping
-        run: ln -sf ../node_modules contracts/node_modules
-
       - name: Install forge-std
         working-directory: contracts
         run: forge install foundry-rs/forge-std --no-git

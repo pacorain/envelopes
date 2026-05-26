@@ -1,12 +1,12 @@
 [profile.default]
 src = "contracts"
 out = "out-foundry"
-libs = ["lib", "node_modules"]
+libs = ["lib", "../node_modules"]
 test = "foundry"
 cache_path = "forge-cache"
 solc = "0.8.34"
 
 remappings = [
-  "@openzeppelin/=node_modules/@openzeppelin/",
+  "@openzeppelin/=../node_modules/@openzeppelin/",
   "forge-std/=lib/forge-std/src/",
 ]
