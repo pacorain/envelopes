@@ -31,8 +31,6 @@ jobs:
         with:
           path: ~/.cache/hardhat-nodejs
           key: hardhat-compiler-${{ hashFiles('contracts/hardhat.config.js') }}
-      - name: Compile contracts
-        run: npm run compile -w contracts
       - uses: crytic/slither-action@v0.4.2
         id: slither
         with:
@@ -41,8 +39,7 @@ jobs:
           slither-args: >-
             --checklist
             --markdown-root ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}/
-            --filter-paths "node_modules,contracts/test,contracts/foundry"
-            --compile-force-framework hardhat
+            --filter-paths "node_modules,test,foundry"
           sarif: results.sarif
           fail-on: high
 
