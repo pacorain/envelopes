@@ -4,6 +4,9 @@ import hardhatToolboxMochaEthers from "@nomicfoundation/hardhat-toolbox-mocha-et
 const config = {
   plugins: [hardhatToolboxMochaEthers],
   solidity: "0.8.34",
+  paths: {
+    ignoreFiles: ["test/foundry/**"],
+  },
   networks: {
     base: {
       type: "http",

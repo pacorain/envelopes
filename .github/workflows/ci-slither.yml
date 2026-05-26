@@ -41,6 +41,7 @@ jobs:
             --markdown-root ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}/
             --solc-remaps @openzeppelin/=node_modules/@openzeppelin/
             --filter-paths node_modules
+            --compile-force-framework hardhat
           sarif: results.sarif
           fail-on: high
 
