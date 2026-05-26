@@ -1,6 +1,6 @@
 import { writable, get, derived } from 'svelte/store';
 import { BrowserProvider } from 'ethers';
-import { EXPECTED_CHAIN_ID, NETWORK_NAME } from '../network.js';
+import { EXPECTED_CHAIN_ID, NETWORK_NAME, ADD_CHAIN_PARAMS } from '../network.js';
 
 export const provider = writable(null);
 export const signer = writable(null);
@@ -41,6 +41,30 @@ export async function connectWallet() {
     }
   } catch (err) {
     walletError.set(err?.message ?? String(err));
+  }
+}
+
+export async function switchToNetwork() {
+  walletError.set('');
+  if (!hasEthereum()) return;
+  try {
+    await window.ethereum.request({
+      method: 'wallet_switchEthereumChain',
+      params: [{ chainId: ADD_CHAIN_PARAMS.chainId }],
+    });
+  } catch (err) {
+    if (err?.code === 4902) {
+      try {
+        await window.ethereum.request({
+          method: 'wallet_addEthereumChain',
+          params: [ADD_CHAIN_PARAMS],
+        });
+      } catch (addErr) {
+        walletError.set(addErr?.message ?? String(addErr));
+      }
+    } else {
+      walletError.set(err?.message ?? String(err));
+    }
   }
 }
 

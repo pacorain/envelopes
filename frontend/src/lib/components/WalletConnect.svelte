@@ -1,5 +1,6 @@
 <script>
-  import { account, walletError, connectWallet, disconnectWallet } from '../stores/wallet.js';
+  import { account, walletError, wrongNetwork, connectWallet, disconnectWallet, switchToNetwork } from '../stores/wallet.js';
+  import { NETWORK_NAME } from '../network.js';
 
   function shorten(addr) {
     if (!addr) return '';
@@ -10,7 +11,11 @@
 {#if $account}
   <div class="wallet connected">
     <span class="addr" title={$account}>{shorten($account)}</span>
-    <button type="button" onclick={disconnectWallet}>Disconnect</button>
+    {#if $wrongNetwork}
+      <button type="button" class="switch" onclick={switchToNetwork}>Switch to {NETWORK_NAME}</button>
+    {:else}
+      <button type="button" onclick={disconnectWallet}>Disconnect</button>
+    {/if}
   </div>
 {:else}
   <div class="wallet">
@@ -46,6 +51,28 @@
   }
   button:hover {
     border-color: var(--accent);
+  }
+  button.switch {
+    border-color: #b45309;
+    background: #fef3c71a;
+    color: #b45309;
+  }
+  button.switch:hover {
+    background: #fef3c733;
+    border-color: #92400e;
+    color: #92400e;
+  }
+  @media (prefers-color-scheme: dark) {
+    button.switch {
+      border-color: #f59e0b;
+      background: #92400e26;
+      color: #fbbf24;
+    }
+    button.switch:hover {
+      background: #92400e44;
+      border-color: #fbbf24;
+      color: #fde68a;
+    }
   }
   .err {
     color: #c0392b;

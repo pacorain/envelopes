@@ -16,3 +16,20 @@ export const NETWORK_NAME = isMainnet ? 'Base Mainnet' : 'Base Sepolia';
 export const DEFAULT_USDC_ADDRESS = isMainnet
   ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
   : '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
+
+/** Parameters for wallet_addEthereumChain, used as a fallback when the chain isn't in the wallet. */
+export const ADD_CHAIN_PARAMS = isMainnet
+  ? {
+      chainId: '0x2105',
+      chainName: 'Base',
+      nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+      rpcUrls: ['https://mainnet.base.org'],
+      blockExplorerUrls: ['https://basescan.org'],
+    }
+  : {
+      chainId: '0x14A34',
+      chainName: 'Base Sepolia',
+      nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+      rpcUrls: ['https://sepolia.base.org'],
+      blockExplorerUrls: ['https://sepolia-explorer.base.org'],
+    };
